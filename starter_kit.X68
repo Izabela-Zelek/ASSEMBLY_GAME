@@ -1,3 +1,10 @@
+*-----------------------------------------------------------
+* Title      :Plumber VS Rabbids
+* Written by :Izabela Zelek
+* Date       :10-03-2021
+* Description:
+*-----------------------------------------------------------
+
 *-------------------------------------------------------
 * STARTING MEMORY ADDRESS FOR THE PROGRAMME $1000
 *-------------------------------------------------------
@@ -124,9 +131,6 @@ POTIONS:
     LEA     POTIONS_MSG,A1
     MOVE.B  #14,D0
     TRAP    #15
-    BSR     DECORATE
-    MOVE.B  #4,D0   
-    TRAP    #15
     RTS
 
 *-------------------------------------------------------
@@ -135,12 +139,21 @@ POTIONS:
 *-------------------------------------------------------   
 WEAPONS:
     BSR     ENDL
-    BSR     DECORATE
     LEA     WEAPONS_MSG,A1
     MOVE.B  #14,D0
     TRAP    #15
     BSR     DECORATE
     MOVE.B  #4,D0   
+    TRAP    #15
+    LEA     SHOP_PROMPT,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    MOVE.B  #4,D0   
+    TRAP    #15
+    CMP #1,D0
+    BNE GAME
+    LEA     PRICE_MSG,A1
+    MOVE.B  #14,D0
     TRAP    #15
     RTS
 
@@ -264,8 +277,6 @@ SHOP:
     MOVE.B  #14,D0
     TRAP    #15
     BSR     DECORATE
-    MOVE.B  #4,D0   
-    TRAP    #15
     RTS
 
     
@@ -277,9 +288,13 @@ SHOP:
 CRLF:           DC.B    $0D,$0A,0
 WELCOME_MSG:    DC.B    '************************************************************'
                 DC.B    $0D,$0A
-                DC.B    'Youve always been a very dedicated plumber. Always done on time and without leaks. You are simply, one of the best. Or at least you were...'
+                DC.B    'Youve always been a very dedicated plumber. Always done on time and without' 
                 DC.B    $0D,$0A
-                DC.B    'All of a sudden these... bunny-eared plumber wannabes showed up and took your jobs. I mean seriously, what kind of self-respected plumber works for free?!?!'
+                DC.B    'leaks. You are simply, one of the best. Or at least you were...'
+                DC.B    $0D,$0A
+                DC.B    'All of a sudden these... bunny-eared plumber wannabes showed up and took your'
+                DC.B    $0D,$0A
+                DC.B    'jobs. I mean seriously, what kind of self-respected plumber works for free?!?!'
                 DC.B    $0D,$0A
                 DC.B    'Its time to show these fakers, who the real Plumber Boss is.'
                 DC.B    $0D,$0A
@@ -287,7 +302,7 @@ WELCOME_MSG:    DC.B    '*******************************************************
 POTION_MSG:     DC.B    'POTION ....'
                 DC.B    $0D,$0A
                 DC.B    'ENTER POTION : ',0
-POTIONS_MSG:    DC.B    'Mmmmmm potions',0
+POTIONS_MSG:    DC.B    'Potions owned:',0
 INSTRUCT_MSG:   DC.B    'Your mission is simple. Defeat the vermin and take back your well-earned title.'
                 DC.B    $0D,$0A
                 DC.B    'Take down as many of them as you can before they take you down.'
@@ -299,11 +314,8 @@ INSTRUCT_MSG:   DC.B    'Your mission is simple. Defeat the vermin and take back
                 DC.B    $0D,$0A
                 DC.B    'Press enter to continue'
                 DC.B    $0D,$0A,0
-WEAPONS_MSG:    DC.B    'EACH QUEST NEED AT LEAST 2 WEAPONS'
-                DC.B    $0D,$0A
-                DC.B    'MINIMUM REQUIREMENT IS 2 I.E. SWORD X 1 AND SPEER X 1.'
-                DC.B    $0D,$0A
-                DC.B    'ENTER # OF WEAPONS : ',0
+WEAPONS_MSG:    DC.B    'Current Weapon:'
+                DC.B    $0D,$0A,0
 GAMEPLAY_MSG:   DC.B    'ADD GAMEPLAY !',0
 UPDATE_MSG:     DC.B    'UPDATE GAMEPLAY !',0
 DRAW_MSG:       DC.B    'DRAW SCREEN !',0
@@ -322,11 +334,22 @@ SHOP_MSG:       DC.B    '*******************************************************
                 DC.B    $0D,$0A
                 DC.B    '************************************************************'
                 DC.B    $0D,$0A,0
+SHOP_PROMPT:    DC.B    'Would you like to visit the shop?'
+                DC.B    $0D,$0A
+                DC.B    '1 - Enter Shop, Enter- Proceed'
+                DC.B    $0D,$0A,0
+PRICE_MSG:      DC.B    'Health Potion- 10'
+                DC.B    $0D,$0A
+                DC.B    'Sword Upgrade- 50'
+                DC.B    $0D,$0A,0
                 
 HEALTH:     DS.W    1   PLAYERS HEALTH
 SCORE:      DS.W    1   RESERVE SPACE FOR SCORE
 
     END START
+
+
+
 
 *~Font name~Courier New~
 *~Font size~10~
