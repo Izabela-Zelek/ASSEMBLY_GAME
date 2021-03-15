@@ -26,6 +26,9 @@ OWNED_WEAPONS EQU 1      MIN WEAPON LEVEL
 MAX_WEAPONS EQU 3      MAX WEAPON LEVEL
 WIN_POINT   EQU 5      POINTS ACCUMILATED ON WIN
 LOSE_POINT  EQU 8      POINTS DEDUCTED ON A LOSS
+MONEY       EQU 50      AMOUNT OF MONEY IN PLAYER'S POSSESSION
+POTION_PRICE EQU 10     PRICE OF POTION IN SHOP
+WEAPON_PRICE EQU 50     PRICE OF WEAPON UPGRADE IN SHOP
 
 MINE_LOC    EQU 100    USED BELOW FOR SOME SIMPLE COLLISION DETECTION USING CMP
                        * EXAMPLE FOR A HIT
@@ -39,6 +42,8 @@ START:
     LEA     $4008,A4   ASSIGN ADDRESS A4 TO THAT MEMORY LOCATION
     MOVE.B  #OWNED_WEAPONS,$4016 PUT WEAPON LEVEL IN MEMORY LOCATION $4008
     LEA     $4016,A5   ASSIGN ADDRESS A4 TO THAT MEMORY LOCATION
+    MOVE.B  #MONEY,$4024
+    LEA     $4024,A6
 
 
 
@@ -297,7 +302,24 @@ SHOP_ASK:
     
     MOVE    D1,D0   GETS INPUT FROM PLAYER AND LETS BUY STUFF
     CMP     #1,D1
-    BNE     NEXT_ITEM
+    BNE     NEXT_ITEM   IF OPTION 1 NOT CHOSEN, MOVES TO OPTION 2
+    
+    MOVE.B  #POTION_PRICE,D4
+    CMP     A6,D4
+    BGE     ADD_POTION  IF MONEY IS GREATER OR EQUAL TO PRICE OF POTION,CAN BUY
+    LEA     NO_MONEY,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    LEA     PRESS_ENTER,A1
+    MOVE.B  #14,D0 
+    TRAP    #15
+    MOVE.B  #4,D0
+    TRAP    #15
+    BSR     POTIONS
+    BSR     WEAPONS
+    BSR     SHOP_ASK
+    RTS
+ADD_POTION:
     ADD.B   #1,(A3)
     BSR     ENDL
     BSR     POTIONS
@@ -308,6 +330,24 @@ SHOP_ASK:
  NEXT_ITEM:
     CMP     #2,D1
     BNE     GAME
+    
+    MOVE.B  #WEAPON_PRICE,D5
+    CMP     A6,D5
+    BGE     ADD_WEAPON  IF MONEY IS GREATER OR EQUAL TO PRICE OF WEAPON,CAN BUY
+    LEA     NO_MONEY,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    LEA     PRESS_ENTER,A1
+    MOVE.B  #14,D0 
+    TRAP    #15
+    MOVE.B  #4,D0
+    TRAP    #15
+    BSR     POTIONS
+    BSR     WEAPONS
+    BSR     SHOP_ASK
+    RTS
+    
+ADD_WEAPON:
     ADD.B   #1,(A5)
     BSR     ENDL
     BSR     POTIONS
@@ -384,11 +424,15 @@ PRICE_MSG:      DC.B    'Health Potion- 10'
                 DC.B    $0D,$0A
                 DC.B    '1 - Buy a Health Potion, 2 - Buy a weapon upgrade, Enter - Proceed'
                 DC.B    $0D,$0A,0
+NO_MONEY:       DC.B    $0D,$0A
+                DC.B    'Not enough money to purchase item'
+                DC.B    $0D,$0A,0
                 
 HEALTH:     DS.W    1   PLAYERS HEALTH
 SCORE:      DS.W    1   RESERVE SPACE FOR SCORE
 
     END START
+
 
 
 
