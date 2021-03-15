@@ -2,7 +2,7 @@
 * Title      :Plumber VS Rabbids
 * Written by :Izabela Zelek
 * Date       :10-03-2021
-* Description:
+* Description:The player has to kill rabbids to gain money and buy a better weapon and more health potions.
 *-----------------------------------------------------------
 
 *-------------------------------------------------------
@@ -20,10 +20,10 @@
 *ADD ADDITIONAL VALIDATION VALUES AS REQUIRED
 *-------------------------------------------------------
 EXIT        EQU 0      USED TO EXIT ASSEMBLY PROGRAM
-MIN_POTIONS EQU 1      MIN NUMBER OF POTIONS
+OWNED_POTIONS EQU 1      MIN NUMBER OF POTIONS
 MAX_POTIONS EQU 9      MAX NUMBER OF POTIONS
-MIN_WEAPONS EQU 1      MIN WEAPONS
-MAX_WEAPONS EQU 3      MAX WEAPONS
+OWNED_WEAPONS EQU 1      MIN WEAPON LEVEL
+MAX_WEAPONS EQU 3      MAX WEAPON LEVEL
 WIN_POINT   EQU 5      POINTS ACCUMILATED ON WIN
 LOSE_POINT  EQU 8      POINTS DEDUCTED ON A LOSS
 
@@ -33,8 +33,13 @@ MINE_LOC    EQU 100    USED BELOW FOR SOME SIMPLE COLLISION DETECTION USING CMP
 
 *START OF GAME
 START:
-    MOVE.B  #100,$4000 PUT SCORE/HEALTH IN MEMORY LOCATION $4000
+    MOVE.B  #OWNED_POTIONS,$4000 PUT POTION AMOUNT IN MEMORY LOCATION $4000
     LEA     $4000,A3   ASSIGN ADDRESS A3 TO THAT MEMORY LOCATION
+    MOVE.B  #100,$4008 PUT MONEY IN MEMORY LOCATION $4008
+    LEA     $4008,A4   ASSIGN ADDRESS A4 TO THAT MEMORY LOCATION
+    MOVE.B  #OWNED_WEAPONS,$4016 PUT WEAPON LEVEL IN MEMORY LOCATION $4008
+    LEA     $4016,A5   ASSIGN ADDRESS A4 TO THAT MEMORY LOCATION
+
 
 
     BSR     WELCOME    BRANCH TO THE WELCOME SUBROUTINE
@@ -64,35 +69,26 @@ WELCOME:
     LEA     INSTRUCT_MSG,A1
     MOVE.B  #14,D0
     TRAP    #15
-    MOVE.B  #4,D0   
-    TRAP    #15
-    BSR     ENDL            BRANCH TO ENDL SUBROUTINE
+
     RTS                     RETURN FROM WELCOME: SUBROUTINE
 
 *-------------------------------------------------------
 *---------GAMEPLAY INPUT VALUES SUBROUTINE--------------
 *-------------------------------------------------------    
 INPUT:
-    BSR     CLEAR_SCREEN    CLEARS THE SCREEN   
-    BSR     POTIONS         BRANCH TO POTION INPUT SUBROUTINE
-    BSR     WEAPONS         BRANCH TO WEAPONSS INPUT SUBROUTINE
-    BSR     SHOP            BRANCH TO SHOP INPUT SUBROUTINE
+    BSR     POTIONS
+    BSR     PROMPT         BRANCH TO WEAPONSS INPUT SUBROUTINE
     RTS
 
 *-------------------------------------------------------
 *----------------GAMELOOP (MAIN LOOP)-------------------
 *------------------------------------------------------- 
 GAMELOOP:
-    BSR     UPDATE          BRANCH TO UPDATE GAME SUBROUTINE 
-    BSR     CLEAR_SCREEN    CLEARS THE SCREEN         
+    BSR     UPDATE          BRANCH TO UPDATE GAME SUBROUTINE        
     BSR     DRAW            BRANCH TO DRAW SCREEN SUBROUTINE
-    BSR     CLEAR_SCREEN    CLEARS THE SCREEN
     BSR     GAMEPLAY        BRANCH TO GAMEPLAY SUBROUTINE
-    BSR     CLEAR_SCREEN    CLEARS THE SCREEN
     BSR     HUD             BRANCH TO DISPLAY HUD SUBROUTINE
-    BSR     CLEAR_SCREEN    CLEARS THE SCREEN
     BSR     REPLAY          BRANCH TO REPLAY GAME SUBROUTINE
-    BSR     CLEAR_SCREEN    CLEARS THE SCREEN
     RTS                     RETURN FROM GAMELOOP: SUBROUTINE
 
 *-------------------------------------------------------
@@ -122,18 +118,6 @@ DRAW:
     RTS
 
 *-------------------------------------------------------
-*--------------------POTIONS INVENTORY---------------------
-* NUMBER OF POTIONS TO BE USED IN A QUEST 
-*------------------------------------------------------- 
-POTIONS:
-    BSR     ENDL
-    BSR     DECORATE
-    LEA     POTIONS_MSG,A1
-    MOVE.B  #14,D0
-    TRAP    #15
-    RTS
-
-*-------------------------------------------------------
 *-------------------------WEAPONS-----------------------
 * NUMBER OF WEAPONS
 *-------------------------------------------------------   
@@ -142,7 +126,18 @@ WEAPONS:
     LEA     WEAPONS_MSG,A1
     MOVE.B  #14,D0
     TRAP    #15
+    MOVE.B  (A5),D1
+    MOVE.B  #3,D0
+    TRAP    #15
+    BSR     ENDL
     BSR     DECORATE
+    RTS
+    
+PROMPT:
+    BSR     WEAPONS
+    LEA     PRESS_ENTER,A1
+    MOVE.B  #14,D0
+    TRAP    #15
     MOVE.B  #4,D0   
     TRAP    #15
     LEA     SHOP_PROMPT,A1
@@ -150,13 +145,27 @@ WEAPONS:
     TRAP    #15
     MOVE.B  #4,D0   
     TRAP    #15
-    CMP #1,D0
+    MOVE    D1,D0
+    CMP #1,D1
     BNE GAME
-    LEA     PRICE_MSG,A1
-    MOVE.B  #14,D0
-    TRAP    #15
+    BSR SHOP
     RTS
 
+*-------------------------------------------------------
+*--------------------POTIONS INVENTORY---------------------
+* NUMBER OF POTIONS TO BE USED IN A QUEST 
+*-------------------------------------------------------
+POTIONS:
+    BSR     DECORATE
+    LEA     POTIONS_MSG,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    MOVE.B  (A3),D1
+    MOVE.B  #3,D0
+    TRAP    #15
+
+    BSR     ENDL            BRANCH TO ENDL SUBROUTINE
+    RTS
 *-------------------------------------------------------
 *---GAME PLAY (QUEST PROGRESS)--------------------------
 *------------------------------------------------------- 
@@ -238,11 +247,6 @@ OUT:
     BSR     ENDL
     RTS
     
-CLEAR_SCREEN: 
-    MOVE.B  #11,D0      CLEAR SCREEN
-    MOVE.W  #$FF00,D1
-    TRAP    #15
-    RTS
 *-------------------------------------------------------
 *------------------------REPLAY-------------------------
 *-------------------------------------------------------
@@ -276,7 +280,41 @@ SHOP:
     LEA     SHOP_MSG,A1
     MOVE.B  #14,D0
     TRAP    #15
+    LEA     PRESS_ENTER,A1 
+    MOVE.B  #14,D0
+    TRAP    #15
+    MOVE.B  #4,D0   
+    TRAP    #15
     BSR     DECORATE
+    BSR     SHOP_ASK
+    RTS
+SHOP_ASK:
+    LEA     PRICE_MSG,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    MOVE.B  #4,D0   
+    TRAP    #15
+    
+    MOVE    D1,D0   GETS INPUT FROM PLAYER AND LETS BUY STUFF
+    CMP     #1,D1
+    BNE     NEXT_ITEM
+    ADD.B   #1,(A3)
+    BSR     ENDL
+    BSR     POTIONS
+    BSR     WEAPONS
+    BSR     ENDL
+    BSR     SHOP_ASK
+    RTS
+ NEXT_ITEM:
+    CMP     #2,D1
+    BNE     GAME
+    ADD.B   #1,(A5)
+    BSR     ENDL
+    BSR     POTIONS
+    BSR     WEAPONS
+    BSR     ENDL
+    BSR     SHOP_ASK
+
     RTS
 
     
@@ -311,11 +349,11 @@ INSTRUCT_MSG:   DC.B    'Your mission is simple. Defeat the vermin and take back
                 DC.B    $0D,$0A
                 DC.B    '************************************************************'
                 DC.B    $0D,$0A
-                DC.B    $0D,$0A
+                DC.B    $0D,$0A,0
+PRESS_ENTER:    DC.B    $0D,$0A
                 DC.B    'Press enter to continue'
                 DC.B    $0D,$0A,0
-WEAPONS_MSG:    DC.B    'Current Weapon:'
-                DC.B    $0D,$0A,0
+WEAPONS_MSG:    DC.B    'Current Weapon Level:',0
 GAMEPLAY_MSG:   DC.B    'ADD GAMEPLAY !',0
 UPDATE_MSG:     DC.B    'UPDATE GAMEPLAY !',0
 DRAW_MSG:       DC.B    'DRAW SCREEN !',0
@@ -341,12 +379,18 @@ SHOP_PROMPT:    DC.B    'Would you like to visit the shop?'
 PRICE_MSG:      DC.B    'Health Potion- 10'
                 DC.B    $0D,$0A
                 DC.B    'Sword Upgrade- 50'
+                DC.B    $0D,$0A
+                DC.B    '************************************************************'
+                DC.B    $0D,$0A
+                DC.B    '1 - Buy a Health Potion, 2 - Buy a weapon upgrade, Enter - Proceed'
                 DC.B    $0D,$0A,0
                 
 HEALTH:     DS.W    1   PLAYERS HEALTH
 SCORE:      DS.W    1   RESERVE SPACE FOR SCORE
 
     END START
+
+
 
 
 
