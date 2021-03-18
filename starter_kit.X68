@@ -26,7 +26,7 @@ OWNED_WEAPONS EQU 1      MIN WEAPON LEVEL
 MAX_WEAPONS EQU 3      MAX WEAPON LEVEL
 WIN_POINT   EQU 5      POINTS ACCUMILATED ON WIN
 LOSE_POINT  EQU 8      POINTS DEDUCTED ON A LOSS
-MONEY       EQU 50      AMOUNT OF MONEY IN PLAYER'S POSSESSION
+MONEY_AMOUNT       EQU 60     AMOUNT OF MONEY IN PLAYER'S POSSESSION
 POTION_PRICE EQU 10     PRICE OF POTION IN SHOP
 WEAPON_PRICE EQU 50     PRICE OF WEAPON UPGRADE IN SHOP
 
@@ -38,12 +38,14 @@ MINE_LOC    EQU 100    USED BELOW FOR SOME SIMPLE COLLISION DETECTION USING CMP
 START:
     MOVE.B  #OWNED_POTIONS,$4000 PUT POTION AMOUNT IN MEMORY LOCATION $4000
     LEA     $4000,A3   ASSIGN ADDRESS A3 TO THAT MEMORY LOCATION
-    MOVE.B  #100,$4008 PUT MONEY IN MEMORY LOCATION $4008
-    LEA     $4008,A4   ASSIGN ADDRESS A4 TO THAT MEMORY LOCATION
+
     MOVE.B  #OWNED_WEAPONS,$4016 PUT WEAPON LEVEL IN MEMORY LOCATION $4008
     LEA     $4016,A5   ASSIGN ADDRESS A4 TO THAT MEMORY LOCATION
-    MOVE.B  #MONEY,$4024
+    MOVE.B  #MONEY_AMOUNT,$4024
     LEA     $4024,A6
+    
+    MOVE.B  #POTION_PRICE,$4032
+
 
 
 
@@ -81,6 +83,7 @@ WELCOME:
 *---------GAMEPLAY INPUT VALUES SUBROUTINE--------------
 *-------------------------------------------------------    
 INPUT:
+    BSR     MONEY
     BSR     POTIONS
     BSR     PROMPT         BRANCH TO WEAPONSS INPUT SUBROUTINE
     RTS
@@ -157,11 +160,27 @@ PROMPT:
     RTS
 
 *-------------------------------------------------------
+*--------------------Money display---------------------
+*-------------------------------------------------------
+MONEY:
+    BSR     DECORATE
+    LEA     MONEY_MSG,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    MOVE.B  (A6),D1
+    MOVE.B  #3,D0
+    TRAP    #15
+    BSR     ENDL
+    RTS
+
+
+
+*-------------------------------------------------------
 *--------------------POTIONS INVENTORY---------------------
 * NUMBER OF POTIONS TO BE USED IN A QUEST 
 *-------------------------------------------------------
 POTIONS:
-    BSR     DECORATE
+    BSR     ENDL
     LEA     POTIONS_MSG,A1
     MOVE.B  #14,D0
     TRAP    #15
@@ -305,7 +324,8 @@ SHOP_ASK:
     BNE     NEXT_ITEM   IF OPTION 1 NOT CHOSEN, MOVES TO OPTION 2
     
     MOVE.B  #POTION_PRICE,D4
-    CMP     A6,D4
+    MOVE.B  (A6),D6
+    CMP     D4,D6
     BGE     ADD_POTION  IF MONEY IS GREATER OR EQUAL TO PRICE OF POTION,CAN BUY
     LEA     NO_MONEY,A1
     MOVE.B  #14,D0
@@ -315,13 +335,16 @@ SHOP_ASK:
     TRAP    #15
     MOVE.B  #4,D0
     TRAP    #15
+    BSR     MONEY   
     BSR     POTIONS
     BSR     WEAPONS
     BSR     SHOP_ASK
     RTS
 ADD_POTION:
     ADD.B   #1,(A3)
+    SUB.B   #POTION_PRICE,(A6)
     BSR     ENDL
+    BSR     MONEY
     BSR     POTIONS
     BSR     WEAPONS
     BSR     ENDL
@@ -332,7 +355,8 @@ ADD_POTION:
     BNE     GAME
     
     MOVE.B  #WEAPON_PRICE,D5
-    CMP     A6,D5
+    MOVE.B  (A6),D6
+    CMP     D5,D6
     BGE     ADD_WEAPON  IF MONEY IS GREATER OR EQUAL TO PRICE OF WEAPON,CAN BUY
     LEA     NO_MONEY,A1
     MOVE.B  #14,D0
@@ -342,6 +366,7 @@ ADD_POTION:
     TRAP    #15
     MOVE.B  #4,D0
     TRAP    #15
+    BSR     MONEY
     BSR     POTIONS
     BSR     WEAPONS
     BSR     SHOP_ASK
@@ -349,7 +374,9 @@ ADD_POTION:
     
 ADD_WEAPON:
     ADD.B   #1,(A5)
+    SUB.B   #WEAPON_PRICE,(A6)
     BSR     ENDL
+    BSR     MONEY
     BSR     POTIONS
     BSR     WEAPONS
     BSR     ENDL
@@ -394,6 +421,7 @@ PRESS_ENTER:    DC.B    $0D,$0A
                 DC.B    'Press enter to continue'
                 DC.B    $0D,$0A,0
 WEAPONS_MSG:    DC.B    'Current Weapon Level:',0
+MONEY_MSG:      DC.B    'Money:',0
 GAMEPLAY_MSG:   DC.B    'ADD GAMEPLAY !',0
 UPDATE_MSG:     DC.B    'UPDATE GAMEPLAY !',0
 DRAW_MSG:       DC.B    'DRAW SCREEN !',0
@@ -432,6 +460,8 @@ HEALTH:     DS.W    1   PLAYERS HEALTH
 SCORE:      DS.W    1   RESERVE SPACE FOR SCORE
 
     END START
+
+
 
 
 
