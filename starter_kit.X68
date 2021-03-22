@@ -2,7 +2,7 @@
 * Title      :Plumber VS Rabbids
 * Written by :Izabela Zelek
 * Date       :10-03-2021
-* Description:The player has to kill rabbids to gain money and buy a better weapon and more health potions.
+* Description:The player has to kill rabbids to gain money and buy a better weapon and more health s.
 *-----------------------------------------------------------
 
 *-------------------------------------------------------
@@ -21,15 +21,12 @@
 *-------------------------------------------------------
 EXIT        EQU 0      USED TO EXIT ASSEMBLY PROGRAM
 OWNED_POTIONS EQU 1      MIN NUMBER OF POTIONS
-MAX_POTIONS EQU 9      MAX NUMBER OF POTIONS
 OWNED_WEAPONS EQU 1      MIN WEAPON LEVEL
-MAX_WEAPONS EQU 3      MAX WEAPON LEVEL
-WIN_POINT   EQU 5      POINTS ACCUMILATED ON WIN
-LOSE_POINT  EQU 8      POINTS DEDUCTED ON A LOSS
 MONEY_AMOUNT       EQU 60     AMOUNT OF MONEY IN PLAYER'S POSSESSION
 POTION_PRICE EQU 10     PRICE OF POTION IN SHOP
 WEAPON_PRICE EQU 50     PRICE OF WEAPON UPGRADE IN SHOP
-
+ENEMY_HEALTH EQU 100
+HEALTH       EQU 100
 MINE_LOC    EQU 100    USED BELOW FOR SOME SIMPLE COLLISION DETECTION USING CMP
                        * EXAMPLE FOR A HIT
 
@@ -38,7 +35,8 @@ MINE_LOC    EQU 100    USED BELOW FOR SOME SIMPLE COLLISION DETECTION USING CMP
 START:
     MOVE.B  #OWNED_POTIONS,$4000 PUT POTION AMOUNT IN MEMORY LOCATION $4000
     LEA     $4000,A3   ASSIGN ADDRESS A3 TO THAT MEMORY LOCATION
-
+    MOVE.B  #HEALTH,$4008
+    LEA     $4008,A4
     MOVE.B  #OWNED_WEAPONS,$4016 PUT WEAPON LEVEL IN MEMORY LOCATION $4008
     LEA     $4016,A5   ASSIGN ADDRESS A4 TO THAT MEMORY LOCATION
     MOVE.B  #MONEY_AMOUNT,$4024
@@ -84,6 +82,7 @@ WELCOME:
 *-------------------------------------------------------    
 INPUT:
     BSR     MONEY
+    BSR     SHOW_HEALTH
     BSR     POTIONS
     BSR     PROMPT         BRANCH TO WEAPONSS INPUT SUBROUTINE
     RTS
@@ -92,39 +91,86 @@ INPUT:
 *----------------GAMELOOP (MAIN LOOP)-------------------
 *------------------------------------------------------- 
 GAMELOOP:
-    BSR     UPDATE          BRANCH TO UPDATE GAME SUBROUTINE        
-    BSR     DRAW            BRANCH TO DRAW SCREEN SUBROUTINE
-    BSR     GAMEPLAY        BRANCH TO GAMEPLAY SUBROUTINE
+    BSR     MISSION_INFO    BRANCH TO UPDATE GAME SUBROUTINE        
+    BSR     PLAYER_TURN     BRANCH TO PLAYER TURN SUBROUTINE
+    BSR     ENEMY_TURN        BRANCH TO ENEMY_TURN SUBROUTINE
     BSR     HUD             BRANCH TO DISPLAY HUD SUBROUTINE
     BSR     REPLAY          BRANCH TO REPLAY GAME SUBROUTINE
     RTS                     RETURN FROM GAMELOOP: SUBROUTINE
 
 *-------------------------------------------------------
-*----------------UPDATE QUEST PROGRESS------------------
+*----------------MISSION_INFO------------------
 *  COMPLETE QUEST
 *------------------------------------------------------- 
-UPDATE:
+MISSION_INFO
     BSR     ENDL            PRINT A CR AND LF
     BSR     DECORATE        DECORATE WITH DOTS USING A LOOP
-    LEA     UPDATE_MSG,A1   
+    LEA     MISSION_MSG,A1   
     MOVE.B  #14,D0
     TRAP    #15
     BSR     DECORATE
     RTS
 *-------------------------------------------------------
-*-----------------DRAW QUEST UPDATES--------------------
+*-----------------PLAYER TURN UPDATES--------------------
 * DRAW THE GAME PROGRESS INFORMATION, STATUS REGARDING
 * QUEST
 *------------------------------------------------------- 
-DRAW:
+PLAYER_TURN:
     BSR     ENDL
+    BSR     SHOW_HEALTH
+    BSR     POTIONS
     BSR     DECORATE
-    LEA     DRAW_MSG,A1
+    LEA     PLAYERTURN_MSG,A1
     MOVE.B  #14,D0
     TRAP    #15
+    MOVE.B  #4,D0   
+    TRAP    #15
+    
+    MOVE    D1,D0   GETS INPUT FROM PLAYER AND LETS BUY STUFF
+    CMP     #1,D1
+    BNE     NEXT_CHOICE   IF OPTION 1 NOT CHOSEN, MOVES TO OPTION 2
     BSR     DECORATE
     RTS
 
+NEXT_CHOICE:
+    CMP     #2,D1
+    BNE     WRONG_CHOICE
+    MOVE.B  (A3),D6
+    CMP     #1,D6
+    BGE     MINUS_POTION
+    LEA     ZEROPOTION_MSG,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    BSR     PLAYER_TURN
+    RTS
+    
+MINUS_POTION:
+    MOVE.B  (A4),D7
+    CMP     #100,D7
+    BGE     CANT_USE_POTION
+    LEA     USE_POTION,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    BSR     DECORATE
+    SUB.B   #1,(A3)
+    ADD.B   #50,(A4)
+    BSR SHOW_HEALTH
+    BSR POTIONS
+    RTS
+   
+CANT_USE_POTION:
+    LEA     FULL_HEALTH,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    BSR     DECORATE 
+    BSR     PLAYER_TURN
+    RTS 
+WRONG_CHOICE:
+    LEA     NOT_CORRECT,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    BNE PLAYER_TURN
+    RTS
 *-------------------------------------------------------
 *-------------------------WEAPONS-----------------------
 * NUMBER OF WEAPONS
@@ -187,13 +233,28 @@ POTIONS:
     MOVE.B  (A3),D1
     MOVE.B  #3,D0
     TRAP    #15
-
+    BSR     ENDL            BRANCH TO ENDL SUBROUTINE
+    RTS
+    
+    
+*-------------------------------------------------------
+*--------------------SHOW HEALTH---------------------
+* AMOUNT OF HEALTH 
+*-------------------------------------------------------
+SHOW_HEALTH:
+    BSR     ENDL
+    LEA     HEALTH_MSG,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    MOVE.B  (A4),D1
+    MOVE.B  #3,D0
+    TRAP    #15
     BSR     ENDL            BRANCH TO ENDL SUBROUTINE
     RTS
 *-------------------------------------------------------
-*---GAME PLAY (QUEST PROGRESS)--------------------------
+*---ENEMY TURN (QUEST PROGRESS)--------------------------
 *------------------------------------------------------- 
-GAMEPLAY:
+ENEMY_TURN:
     BSR     ENDL
     BSR     DECORATE
     LEA     GAMEPLAY_MSG,A1
@@ -285,7 +346,7 @@ REPLAY:
 
     CMP     #EXIT,D1
     BEQ     END         IF SR Z REGISTER CONTAINS 1 BEQ => BRANCH EQUALS
-    BSR     GAMELOOP
+    BSR     INPUT
 
 ENDL:
     MOVEM.L D0/A1,-(A7)
@@ -423,8 +484,13 @@ PRESS_ENTER:    DC.B    $0D,$0A
 WEAPONS_MSG:    DC.B    'Current Weapon Level:',0
 MONEY_MSG:      DC.B    'Money:',0
 GAMEPLAY_MSG:   DC.B    'ADD GAMEPLAY !',0
-UPDATE_MSG:     DC.B    'UPDATE GAMEPLAY !',0
-DRAW_MSG:       DC.B    'DRAW SCREEN !',0
+MISSION_MSG:    DC.B    'A new challenger has appeared...oh Gods no...'
+                DC.B    $0D,$0A
+                DC.B    'Eliminate the rabbit!',0
+PLAYERTURN_MSG: DC.B    'What do you want to do?'
+                DC.B    $0D,$0A
+                DC.B    '1 - Attack!  2 - Heal thyself!'
+                DC.B    $0D,$0A,0
 HIT_MSG:        DC.B    'STRIKE!',0
 MISS_MSG:       DC.B    'MISS!',0
 LOOP_MSG:       DC.B    '.',0
@@ -455,11 +521,24 @@ PRICE_MSG:      DC.B    'Health Potion- 10'
 NO_MONEY:       DC.B    $0D,$0A
                 DC.B    'Not enough money to purchase item'
                 DC.B    $0D,$0A,0
+NOT_CORRECT:    DC.B    $0D,$0A
+                DC.B    'Option Unavailable'
+                DC.B    $0D,$0A,0
                 
-HEALTH:     DS.W    1   PLAYERS HEALTH
+FULL_HEALTH:    DC.B    $0D,$0A
+                DC.B    'HEALTH IS FULL - Unable to heal'
+                DC.B    $0D,$0A,0
+
+USE_POTION:     DC.B    $0D,$0A
+                DC.B    'You have gained 50 health'
+                DC.B    $0D,$0A,0
+HEALTH_MSG:     DC.B    'Health:',0
+ZEROPOTION_MSG: DC.B    'No potions available',0
+                
 SCORE:      DS.W    1   RESERVE SPACE FOR SCORE
 
     END START
+
 
 
 
