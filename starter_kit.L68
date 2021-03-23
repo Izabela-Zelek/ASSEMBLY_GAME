@@ -1,547 +1,578 @@
 00001000 Starting Address
 Assembler used: EASy68K Editor/Assembler v5.15.04
-Created On: 22-Mar-21 21:10:00
+Created On: 23-Mar-21 22:09:02
 
 00000000                             1  *-----------------------------------------------------------
 00000000                             2  * Title      :Plumber VS Rabbids
 00000000                             3  * Written by :Izabela Zelek
 00000000                             4  * Date       :10-03-2021
-00000000                             5  * Description:The player has to kill rabbids to gain money and buy a better weapon and more health s.
-00000000                             6  *-----------------------------------------------------------
-00000000                             7  
-00000000                             8  *-------------------------------------------------------
-00000000                             9  * STARTING MEMORY ADDRESS FOR THE PROGRAMME $1000
+00000000                             5  * Description:The player has to kill rabbids to gain money and buy a better weapon and more health potions.
+00000000                             6  * Known Bugs: Health text gets shown twice during fight after 2 rounds of fighting.
+00000000                             7  *             Health sometimes bugs out and shows 0 or 245
+00000000                             8  *-----------------------------------------------------------
+00000000                             9  
 00000000                            10  *-------------------------------------------------------
-00000000                            11      
-00001000                            12      ORG $1000
-00001000                            13  
-00001000                            14  *-------------------------------------------------------
-00001000                            15  *PLAY AS A PLUMBER JUST TRYING TO GET THEIR JOB BACK
+00000000                            11  * STARTING MEMORY ADDRESS FOR THE PROGRAMME $1000
+00000000                            12  *-------------------------------------------------------
+00000000                            13      
+00001000                            14      ORG $1000
+00001000                            15  
 00001000                            16  *-------------------------------------------------------
-00001000                            17  
+00001000                            17  *PLAY AS A PLUMBER JUST TRYING TO GET THEIR JOB BACK
 00001000                            18  *-------------------------------------------------------
-00001000                            19  *VALIDATION VALUES TO BE USED, MODIFY AS NEEDED
-00001000                            20  *ADD ADDITIONAL VALIDATION VALUES AS REQUIRED
-00001000                            21  *-------------------------------------------------------
-00001000  =00000000                 22  EXIT        EQU 0      USED TO EXIT ASSEMBLY PROGRAM
-00001000  =00000001                 23  OWNED_POTIONS EQU 1      MIN NUMBER OF POTIONS
-00001000  =00000001                 24  OWNED_WEAPONS EQU 1      MIN WEAPON LEVEL
-00001000  =0000003C                 25  MONEY_AMOUNT       EQU 60     AMOUNT OF MONEY IN PLAYER'S POSSESSION
-00001000  =0000000A                 26  POTION_PRICE EQU 10     PRICE OF POTION IN SHOP
-00001000  =00000032                 27  WEAPON_PRICE EQU 50     PRICE OF WEAPON UPGRADE IN SHOP
-00001000  =00000064                 28  ENEMY_HEALTH EQU 100
-00001000  =0000000A                 29  HEALTH       EQU 10
-00001000  =00000064                 30  MINE_LOC    EQU 100    USED BELOW FOR SOME SIMPLE COLLISION DETECTION USING CMP
-00001000                            31                         * EXAMPLE FOR A HIT
-00001000                            32  
-00001000                            33  
-00001000                            34  *START OF GAME
-00001000                            35  START:
-00001000  11FC 0001 4000            36      MOVE.B  #OWNED_POTIONS,$4000 PUT POTION AMOUNT IN MEMORY LOCATION $4000
-00001006  47F8 4000                 37      LEA     $4000,A3   ASSIGN ADDRESS A3 TO THAT MEMORY LOCATION
-0000100A  11FC 000A 4008            38      MOVE.B  #HEALTH,$4008
-00001010  49F8 4008                 39      LEA     $4008,A4
-00001014  11FC 0001 4016            40      MOVE.B  #OWNED_WEAPONS,$4016 PUT WEAPON LEVEL IN MEMORY LOCATION $4008
-0000101A  4BF8 4016                 41      LEA     $4016,A5   ASSIGN ADDRESS A4 TO THAT MEMORY LOCATION
-0000101E  11FC 003C 4024            42      MOVE.B  #MONEY_AMOUNT,$4024
-00001024  4DF8 4024                 43      LEA     $4024,A6
-00001028                            44      
-00001028  11FC 000A 4032            45      MOVE.B  #POTION_PRICE,$4032
-0000102E                            46  
-0000102E                            47  
-0000102E                            48  
-0000102E                            49  
-0000102E  6100 1FDA                 50      BSR     WELCOME    BRANCH TO THE WELCOME SUBROUTINE
-00001032  6100 1FF4                 51      BSR     INPUT      BRANCH TO THE INPUT SUBROUTINE
-00001036  6100 1FC8                 52      BSR     GAME       BRANCH TO THE GAME SUBROUTINE
-0000103A                            53  *GAME LOOP
-00003000                            54      ORG     $3000      THE REST OF THE PROGRAM IS TO BE LOCATED FROM 3000 ONWARDS
-00003000                            55  
-00003000                            56  *-------------------------------------------------------
-00003000                            57  *-------------------GAME SUBROUTINE---------------------
-00003000                            58  *-------------------------------------------------------
-00003000                            59  GAME:
-00003000  6100 0038                 60      BSR     GAMELOOP   BRANCH TO GAMELOOP SUBROUTINE
-00003004  4E75                      61      RTS                RETURN FROM GAME: SUBROUTINE
-00003006                            62            
-00003006                            63  END:
-00003006  FFFF FFFF                 64      SIMHALT
-0000300A                            65  
-0000300A                            66  *-------------------------------------------------------
-0000300A                            67  *-------------------WELCOME SUBROUTINE------------------
-0000300A                            68  *-------------------------------------------------------
-0000300A                            69  WELCOME:
-0000300A  6100 0278                 70      BSR     ENDL            BRANCH TO ENDL SUBROUTINE
-0000300E  43F9 0000339F             71      LEA     WELCOME_MSG,A1  ASSIGN MESSAGE TO ADDRESS REGISTER A1
-00003014  103C 000E                 72      MOVE.B  #14,D0          MOVE LITERAL 14 TO DO
-00003018  4E4F                      73      TRAP    #15             TRAP AND INTERPRET VALUE IN D0
-0000301A  43F9 00003577             74      LEA     INSTRUCT_MSG,A1
-00003020  103C 000E                 75      MOVE.B  #14,D0
-00003024  4E4F                      76      TRAP    #15
-00003026                            77  
-00003026  4E75                      78      RTS                     RETURN FROM WELCOME: SUBROUTINE
-00003028                            79  
-00003028                            80  *-------------------------------------------------------
-00003028                            81  *---------GAMEPLAY INPUT VALUES SUBROUTINE--------------
-00003028                            82  *-------------------------------------------------------    
-00003028                            83  INPUT:
-00003028  6100 013E                 84      BSR     MONEY
-0000302C  6100 0176                 85      BSR     SHOW_HEALTH
-00003030  6100 0154                 86      BSR     POTIONS
-00003034  6100 00FC                 87      BSR     PROMPT         BRANCH TO WEAPONSS INPUT SUBROUTINE
-00003038  4E75                      88      RTS
-0000303A                            89  
-0000303A                            90  *-------------------------------------------------------
-0000303A                            91  *----------------GAMELOOP (MAIN LOOP)-------------------
-0000303A                            92  *------------------------------------------------------- 
-0000303A                            93  GAMELOOP:
-0000303A  6100 0014                 94      BSR     MISSION_INFO    BRANCH TO UPDATE GAME SUBROUTINE        
-0000303E  6100 002A                 95      BSR     PLAYER_TURN     BRANCH TO PLAYER TURN SUBROUTINE
-00003042  6100 017E                 96      BSR     ENEMY_TURN        BRANCH TO ENEMY_TURN SUBROUTINE
-00003046  6100 019E                 97      BSR     HUD             BRANCH TO DISPLAY HUD SUBROUTINE
-0000304A  6100 0216                 98      BSR     REPLAY          BRANCH TO REPLAY GAME SUBROUTINE
-0000304E  4E75                      99      RTS                     RETURN FROM GAMELOOP: SUBROUTINE
-00003050                           100  
-00003050                           101  *-------------------------------------------------------
-00003050                           102  *----------------MISSION_INFO------------------
-00003050                           103  *  COMPLETE QUEST
-00003050                           104  *------------------------------------------------------- 
-00003050                           105  MISSION_INFO
-00003050  6100 0232                106      BSR     ENDL            PRINT A CR AND LF
-00003054  6100 01EE                107      BSR     DECORATE        DECORATE WITH DOTS USING A LOOP
-00003058  43F9 000036A6            108      LEA     MISSION_MSG,A1   
-0000305E  103C 000E                109      MOVE.B  #14,D0
-00003062  4E4F                     110      TRAP    #15
-00003064  6100 01DE                111      BSR     DECORATE
-00003068  4E75                     112      RTS
-0000306A                           113  *-------------------------------------------------------
-0000306A                           114  *-----------------PLAYER TURN UPDATES--------------------
-0000306A                           115  * DRAW THE GAME PROGRESS INFORMATION, STATUS REGARDING
-0000306A                           116  * QUEST
-0000306A                           117  *------------------------------------------------------- 
-0000306A                           118  PLAYER_TURN:
-0000306A  6100 0218                119      BSR     ENDL
-0000306E  6100 0134                120      BSR     SHOW_HEALTH
-00003072  6100 0112                121      BSR     POTIONS
-00003076  6100 01CC                122      BSR     DECORATE
-0000307A  43F9 000036EB            123      LEA     PLAYERTURN_MSG,A1
-00003080  103C 000E                124      MOVE.B  #14,D0
-00003084  4E4F                     125      TRAP    #15
-00003086  103C 0004                126      MOVE.B  #4,D0   
-0000308A  4E4F                     127      TRAP    #15
-0000308C                           128      
-0000308C  3001                     129      MOVE    D1,D0   GETS INPUT FROM PLAYER AND LETS BUY STUFF
-0000308E  B27C 0001                130      CMP     #1,D1
-00003092  6600 0008                131      BNE     NEXT_CHOICE   IF OPTION 1 NOT CHOSEN, MOVES TO OPTION 2
-00003096  6100 01AC                132      BSR     DECORATE
-0000309A  4E75                     133      RTS
-0000309C                           134  
-0000309C                           135  NEXT_CHOICE:
-0000309C  B27C 0002                136      CMP     #2,D1
-000030A0  6600 005C                137      BNE     WRONG_CHOICE
-000030A4  1C13                     138      MOVE.B  (A3),D6
-000030A6  BC7C 0001                139      CMP     #1,D6
-000030AA  6C00 0012                140      BGE     MINUS_POTION
-000030AE  43F9 000039D0            141      LEA     ZEROPOTION_MSG,A1
-000030B4  103C 000E                142      MOVE.B  #14,D0
-000030B8  4E4F                     143      TRAP    #15
-000030BA  61AE                     144      BSR     PLAYER_TURN
-000030BC  4E75                     145      RTS
-000030BE                           146      
-000030BE                           147  MINUS_POTION:
-000030BE  1E14                     148      MOVE.B  (A4),D7
-000030C0  BE7C 0064                149      CMP     #100,D7
-000030C4  6C00 0022                150      BGE     CANT_USE_POTION
-000030C8  43F9 000039AA            151      LEA     USE_POTION,A1
-000030CE  103C 000E                152      MOVE.B  #14,D0
-000030D2  4E4F                     153      TRAP    #15
-000030D4  6100 016E                154      BSR     DECORATE
-000030D8  5313                     155      SUB.B   #1,(A3)
-000030DA  0614 0032                156      ADD.B   #50,(A4)
-000030DE  6100 00C4                157      BSR SHOW_HEALTH
-000030E2  6100 00A2                158      BSR POTIONS
-000030E6  4E75                     159      RTS
-000030E8                           160     
-000030E8                           161  CANT_USE_POTION:
-000030E8  43F9 00003986            162      LEA     FULL_HEALTH,A1
-000030EE  103C 000E                163      MOVE.B  #14,D0
-000030F2  4E4F                     164      TRAP    #15
-000030F4  6100 014E                165      BSR     DECORATE 
-000030F8  6100 FF70                166      BSR     PLAYER_TURN
-000030FC  4E75                     167      RTS 
-000030FE                           168  WRONG_CHOICE:
-000030FE  43F9 0000396F            169      LEA     NOT_CORRECT,A1
-00003104  103C 000E                170      MOVE.B  #14,D0
-00003108  4E4F                     171      TRAP    #15
-0000310A  6600 FF5E                172      BNE PLAYER_TURN
-0000310E  4E75                     173      RTS
-00003110                           174  *-------------------------------------------------------
-00003110                           175  *-------------------------WEAPONS-----------------------
-00003110                           176  * NUMBER OF WEAPONS
-00003110                           177  *-------------------------------------------------------   
-00003110                           178  WEAPONS:
-00003110  6100 0172                179      BSR     ENDL
-00003114  43F9 0000367A            180      LEA     WEAPONS_MSG,A1
-0000311A  103C 000E                181      MOVE.B  #14,D0
-0000311E  4E4F                     182      TRAP    #15
-00003120  1215                     183      MOVE.B  (A5),D1
-00003122  103C 0003                184      MOVE.B  #3,D0
-00003126  4E4F                     185      TRAP    #15
-00003128  6100 015A                186      BSR     ENDL
-0000312C  6100 0116                187      BSR     DECORATE
-00003130  4E75                     188      RTS
-00003132                           189      
-00003132                           190  PROMPT:
-00003132  61DC                     191      BSR     WEAPONS
-00003134  43F9 0000365E            192      LEA     PRESS_ENTER,A1
-0000313A  103C 000E                193      MOVE.B  #14,D0
-0000313E  4E4F                     194      TRAP    #15
-00003140  103C 0004                195      MOVE.B  #4,D0   
-00003144  4E4F                     196      TRAP    #15
-00003146  43F9 0000385C            197      LEA     SHOP_PROMPT,A1
-0000314C  103C 000E                198      MOVE.B  #14,D0
-00003150  4E4F                     199      TRAP    #15
-00003152  103C 0004                200      MOVE.B  #4,D0   
-00003156  4E4F                     201      TRAP    #15
-00003158  3001                     202      MOVE    D1,D0
-0000315A  B27C 0001                203      CMP #1,D1
-0000315E  6600 FEA0                204      BNE GAME
-00003162  6100 0136                205      BSR SHOP
-00003166  4E75                     206      RTS
-00003168                           207  
-00003168                           208  *-------------------------------------------------------
-00003168                           209  *--------------------Money display---------------------
-00003168                           210  *-------------------------------------------------------
-00003168                           211  MONEY:
-00003168  6100 00DA                212      BSR     DECORATE
-0000316C  43F9 00003690            213      LEA     MONEY_MSG,A1
-00003172  103C 000E                214      MOVE.B  #14,D0
-00003176  4E4F                     215      TRAP    #15
-00003178  1216                     216      MOVE.B  (A6),D1
-0000317A  103C 0003                217      MOVE.B  #3,D0
-0000317E  4E4F                     218      TRAP    #15
-00003180  6100 0102                219      BSR     ENDL
-00003184  4E75                     220      RTS
-00003186                           221  
-00003186                           222  
-00003186                           223  
-00003186                           224  *-------------------------------------------------------
-00003186                           225  *--------------------POTIONS INVENTORY---------------------
-00003186                           226  * NUMBER OF POTIONS TO BE USED IN A QUEST 
-00003186                           227  *-------------------------------------------------------
-00003186                           228  POTIONS:
-00003186  6100 00FC                229      BSR     ENDL
-0000318A  43F9 00003568            230      LEA     POTIONS_MSG,A1
-00003190  103C 000E                231      MOVE.B  #14,D0
-00003194  4E4F                     232      TRAP    #15
-00003196  1213                     233      MOVE.B  (A3),D1
-00003198  103C 0003                234      MOVE.B  #3,D0
-0000319C  4E4F                     235      TRAP    #15
-0000319E  6100 00E4                236      BSR     ENDL            BRANCH TO ENDL SUBROUTINE
-000031A2  4E75                     237      RTS
-000031A4                           238      
-000031A4                           239      
-000031A4                           240  *-------------------------------------------------------
-000031A4                           241  *--------------------SHOW HEALTH---------------------
-000031A4                           242  * AMOUNT OF HEALTH 
-000031A4                           243  *-------------------------------------------------------
-000031A4                           244  SHOW_HEALTH:
-000031A4  6100 00DE                245      BSR     ENDL
-000031A8  43F9 000039C8            246      LEA     HEALTH_MSG,A1
-000031AE  103C 000E                247      MOVE.B  #14,D0
-000031B2  4E4F                     248      TRAP    #15
-000031B4  1214                     249      MOVE.B  (A4),D1
-000031B6  103C 0003                250      MOVE.B  #3,D0
-000031BA  4E4F                     251      TRAP    #15
-000031BC  6100 00C6                252      BSR     ENDL            BRANCH TO ENDL SUBROUTINE
-000031C0  4E75                     253      RTS
-000031C2                           254  *-------------------------------------------------------
-000031C2                           255  *---ENEMY TURN (QUEST PROGRESS)--------------------------
-000031C2                           256  *------------------------------------------------------- 
-000031C2                           257  ENEMY_TURN:
-000031C2  6100 00C0                258      BSR     ENDL
-000031C6  6100 007C                259      BSR     DECORATE
-000031CA  43F9 00003697            260      LEA     GAMEPLAY_MSG,A1
-000031D0  103C 000E                261      MOVE.B  #14,D0
-000031D4  4E4F                     262      TRAP    #15
-000031D6  103C 0004                263      MOVE.B  #4,D0
-000031DA  4E4F                     264      TRAP    #15
-000031DC  6100 0066                265      BSR     DECORATE
-000031E0  6100 0026                266      BSR     COLLISION
-000031E4  4E75                     267      RTS
-000031E6                           268  
-000031E6                           269  *-------------------------------------------------------
-000031E6                           270  *-----------------HEADS UP DISPLAY (SCORE)--------------
-000031E6                           271  * RETRIEVES THE SCORE FROM MEMORY LOCATION
-000031E6                           272  *-------------------------------------------------------   
-000031E6                           273  HUD:
-000031E6                           274  
-000031E6  6100 009C                275      BSR     ENDL
-000031EA  6100 0058                276      BSR     DECORATE
-000031EE  43F9 00003763            277      LEA     HUD_MSG,A1
-000031F4  103C 000E                278      MOVE.B  #14,D0
-000031F8  4E4F                     279      TRAP    #15
-000031FA  1213                     280      MOVE.B  (A3),D1     RETRIEVE THE VALUE A3 POINT TO AND MOVE TO D1
-000031FC  103C 0003                281      MOVE.B  #3,D0       MOVE LITERAL 3 TO D0
-00003200  4E4F                     282      TRAP    #15         INTREPRET VALUE IN D0, WHICH 3 WHICH DISPLAYS D1
-00003202  6100 0040                283      BSR     DECORATE
-00003206  4E75                     284      RTS
-00003208                           285  
-00003208                           286  *-------------------------------------------------------
-00003208                           287  *-----------------------BEING ATTACKED------------------
-00003208                           288  * THIS COULD BE USED FOR COLLISION DETECTION
-00003208                           289  *-------------------------------------------------------
-00003208                           290  COLLISION:
-00003208  123C 0064                291      MOVE.B  #MINE_LOC,D1
-0000320C  B27C 0064                292      CMP     #100,D1 IS( X == 100)?
-00003210  6600 0010                293      BNE     COLLISION_MISS IF X IS EQUAL TO 100, THEN HIT
-00003214                           294  COLLISION_HIT:
-00003214                           295      *HIT
-00003214  43F9 00003725            296      LEA     HIT_MSG,A1
-0000321A  303C 000E                297      MOVE    #14,D0
-0000321E  4E4F                     298      TRAP    #15
-00003220  4E75                     299      RTS
-00003222                           300      
-00003222                           301  COLLISION_MISS:
-00003222                           302      *MISS
-00003222  43F9 0000372D            303      LEA     MISS_MSG,A1
-00003228  303C 000E                304      MOVE    #14,D0
-0000322C  4E4F                     305      TRAP    #15
-0000322E  4E75                     306      RTS
-00003230                           307  
-00003230                           308  *-------------------------------------------------------
-00003230                           309  *--------------------------LOOP-------------------------
-00003230                           310  *-------------------------------------------------------
-00003230                           311  LOOP:
-00003230  163C 0005                312      MOVE.B  #5, D3 LOOP COUNTER D3=5
-00003234                           313  NEXT:
-00003234  43F9 00003733            314      LEA     LOOP_MSG,A1
-0000323A  103C 000E                315      MOVE.B  #14,D0
-0000323E  4E4F                     316      TRAP    #15
-00003240  5343                     317      SUB     #1,D3   DECREMENT LOOP COUNTER
-00003242  66F0                     318      BNE     NEXT    REPEAT UNTIL D0=0
-00003244                           319  
-00003244                           320  *-------------------------------------------------------
-00003244                           321  *------------------SCREEN DECORATION--------------------
-00003244                           322  *-------------------------------------------------------
-00003244                           323  DECORATE:
-00003244  163C 003C                324      MOVE.B  #60, D3
-00003248  6100 003A                325      BSR     ENDL
-0000324C                           326  OUT:
-0000324C  43F9 00003733            327      LEA     LOOP_MSG,A1
-00003252  103C 000E                328      MOVE.B  #14,D0
-00003256  4E4F                     329      TRAP    #15
-00003258  5343                     330      SUB     #1,D3   DECREMENT LOOP COUNTER
-0000325A  66F0                     331      BNE     OUT     REPEAT UNTIL D0=0
-0000325C  6100 0026                332      BSR     ENDL
-00003260  4E75                     333      RTS
-00003262                           334      
-00003262                           335  *-------------------------------------------------------
-00003262                           336  *------------------------REPLAY-------------------------
-00003262                           337  *-------------------------------------------------------
-00003262                           338  REPLAY:
-00003262  6100 0020                339      BSR     ENDL
-00003266  43F9 00003735            340      LEA     REPLAY_MSG,A1
-0000326C  103C 000E                341      MOVE.B  #14,D0
-00003270  4E4F                     342      TRAP    #15
-00003272                           343      
-00003272  103C 0004                344      MOVE.B  #4,D0
-00003276  4E4F                     345      TRAP    #15
-00003278                           346  
-00003278  B27C 0000                347      CMP     #EXIT,D1
-0000327C  6700 FD88                348      BEQ     END         IF SR Z REGISTER CONTAINS 1 BEQ => BRANCH EQUALS
-00003280  6100 FDA6                349      BSR     INPUT
-00003284                           350  
-00003284                           351  ENDL:
-00003284  48E7 8040                352      MOVEM.L D0/A1,-(A7)
-00003288  303C 000E                353      MOVE    #14,D0
-0000328C  43F9 0000339C            354      LEA     CRLF,A1
-00003292  4E4F                     355      TRAP    #15
-00003294  4CDF 0201                356      MOVEM.L (A7)+,D0/A1
-00003298  4E75                     357      RTS
-0000329A                           358  
-0000329A                           359  *-------------------------------------------------------
-0000329A                           360  *-------------------SHOP--------------------
-0000329A                           361  *-------------------------------------------------------
-0000329A                           362  SHOP:
-0000329A  61E8                     363      BSR     ENDL
-0000329C  61A6                     364      BSR     DECORATE
-0000329E  43F9 0000376C            365      LEA     SHOP_MSG,A1
-000032A4  103C 000E                366      MOVE.B  #14,D0
-000032A8  4E4F                     367      TRAP    #15
-000032AA  43F9 0000365E            368      LEA     PRESS_ENTER,A1 
-000032B0  103C 000E                369      MOVE.B  #14,D0
-000032B4  4E4F                     370      TRAP    #15
-000032B6  103C 0004                371      MOVE.B  #4,D0   
-000032BA  4E4F                     372      TRAP    #15
-000032BC  6186                     373      BSR     DECORATE
-000032BE  6100 0004                374      BSR     SHOP_ASK
-000032C2  4E75                     375      RTS
-000032C4                           376  SHOP_ASK:
-000032C4  43F9 000038A0            377      LEA     PRICE_MSG,A1
-000032CA  103C 000E                378      MOVE.B  #14,D0
-000032CE  4E4F                     379      TRAP    #15
-000032D0  103C 0004                380      MOVE.B  #4,D0   
-000032D4  4E4F                     381      TRAP    #15
-000032D6                           382      
-000032D6  3001                     383      MOVE    D1,D0   GETS INPUT FROM PLAYER AND LETS BUY STUFF
-000032D8  B27C 0001                384      CMP     #1,D1
-000032DC  6600 005A                385      BNE     NEXT_ITEM   IF OPTION 1 NOT CHOSEN, MOVES TO OPTION 2
-000032E0                           386      
-000032E0  183C 000A                387      MOVE.B  #POTION_PRICE,D4
-000032E4  1C16                     388      MOVE.B  (A6),D6
-000032E6  BC44                     389      CMP     D4,D6
-000032E8  6C00 0030                390      BGE     ADD_POTION  IF MONEY IS GREATER OR EQUAL TO PRICE OF POTION,CAN BUY
-000032EC  43F9 00003949            391      LEA     NO_MONEY,A1
-000032F2  103C 000E                392      MOVE.B  #14,D0
-000032F6  4E4F                     393      TRAP    #15
-000032F8  43F9 0000365E            394      LEA     PRESS_ENTER,A1
-000032FE  103C 000E                395      MOVE.B  #14,D0 
-00003302  4E4F                     396      TRAP    #15
-00003304  103C 0004                397      MOVE.B  #4,D0
-00003308  4E4F                     398      TRAP    #15
-0000330A  6100 FE5C                399      BSR     MONEY   
-0000330E  6100 FE76                400      BSR     POTIONS
-00003312  6100 FDFC                401      BSR     WEAPONS
-00003316  61AC                     402      BSR     SHOP_ASK
-00003318  4E75                     403      RTS
-0000331A                           404  ADD_POTION:
-0000331A  5213                     405      ADD.B   #1,(A3)
-0000331C  0416 000A                406      SUB.B   #POTION_PRICE,(A6)
-00003320  6100 FF62                407      BSR     ENDL
-00003324  6100 FE42                408      BSR     MONEY
-00003328  6100 FE5C                409      BSR     POTIONS
-0000332C  6100 FDE2                410      BSR     WEAPONS
-00003330  6100 FF52                411      BSR     ENDL
-00003334  618E                     412      BSR     SHOP_ASK
-00003336  4E75                     413      RTS
-00003338                           414   NEXT_ITEM:
-00003338  B27C 0002                415      CMP     #2,D1
-0000333C  6600 FCC2                416      BNE     GAME
-00003340                           417      
-00003340  1A3C 0032                418      MOVE.B  #WEAPON_PRICE,D5
-00003344  1C16                     419      MOVE.B  (A6),D6
-00003346  BC45                     420      CMP     D5,D6
-00003348  6C00 0032                421      BGE     ADD_WEAPON  IF MONEY IS GREATER OR EQUAL TO PRICE OF WEAPON,CAN BUY
-0000334C  43F9 00003949            422      LEA     NO_MONEY,A1
-00003352  103C 000E                423      MOVE.B  #14,D0
-00003356  4E4F                     424      TRAP    #15
-00003358  43F9 0000365E            425      LEA     PRESS_ENTER,A1
-0000335E  103C 000E                426      MOVE.B  #14,D0 
-00003362  4E4F                     427      TRAP    #15
-00003364  103C 0004                428      MOVE.B  #4,D0
-00003368  4E4F                     429      TRAP    #15
-0000336A  6100 FDFC                430      BSR     MONEY
-0000336E  6100 FE16                431      BSR     POTIONS
-00003372  6100 FD9C                432      BSR     WEAPONS
-00003376  6100 FF4C                433      BSR     SHOP_ASK
-0000337A  4E75                     434      RTS
-0000337C                           435      
-0000337C                           436  ADD_WEAPON:
-0000337C  5215                     437      ADD.B   #1,(A5)
-0000337E  0416 0032                438      SUB.B   #WEAPON_PRICE,(A6)
-00003382  6100 FF00                439      BSR     ENDL
-00003386  6100 FDE0                440      BSR     MONEY
-0000338A  6100 FDFA                441      BSR     POTIONS
-0000338E  6100 FD80                442      BSR     WEAPONS
-00003392  6100 FEF0                443      BSR     ENDL
-00003396  6100 FF2C                444      BSR     SHOP_ASK
-0000339A                           445  
-0000339A  4E75                     446      RTS
-0000339C                           447  
-0000339C                           448      
-0000339C                           449     
-0000339C                           450  *-------------------------------------------------------
-0000339C                           451  *-------------------DATA DELARATIONS--------------------
-0000339C                           452  *-------------------------------------------------------
-0000339C                           453  
-0000339C= 0D 0A 00                 454  CRLF:           DC.B    $0D,$0A,0
-0000339F= 2A 2A 2A 2A 2A 2A ...    455  WELCOME_MSG:    DC.B    '************************************************************'
-000033DB= 0D 0A                    456                  DC.B    $0D,$0A
-000033DD= 59 6F 75 76 65 20 ...    457                  DC.B    'Youve always been a very dedicated plumber. Always done on time and without' 
-00003428= 0D 0A                    458                  DC.B    $0D,$0A
-0000342A= 6C 65 61 6B 73 2E ...    459                  DC.B    'leaks. You are simply, one of the best. Or at least you were...'
-00003469= 0D 0A                    460                  DC.B    $0D,$0A
-0000346B= 41 6C 6C 20 6F 66 ...    461                  DC.B    'All of a sudden these... bunny-eared plumber wannabes showed up and took your'
-000034B8= 0D 0A                    462                  DC.B    $0D,$0A
-000034BA= 6A 6F 62 73 2E 20 ...    463                  DC.B    'jobs. I mean seriously, what kind of self-respected plumber works for free?!?!'
-00003508= 0D 0A                    464                  DC.B    $0D,$0A
-0000350A= 49 74 73 20 74 69 ...    465                  DC.B    'Its time to show these fakers, who the real Plumber Boss is.'
-00003546= 0D 0A                    466                  DC.B    $0D,$0A
-00003548= 0D 0A 00                 467                  DC.B    $0D,$0A,0
-0000354B= 50 4F 54 49 4F 4E ...    468  POTION_MSG:     DC.B    'POTION ....'
-00003556= 0D 0A                    469                  DC.B    $0D,$0A
-00003558= 45 4E 54 45 52 20 ...    470                  DC.B    'ENTER POTION : ',0
-00003568= 50 6F 74 69 6F 6E ...    471  POTIONS_MSG:    DC.B    'Potions owned:',0
-00003577= 59 6F 75 72 20 6D ...    472  INSTRUCT_MSG:   DC.B    'Your mission is simple. Defeat the vermin and take back your well-earned title.'
-000035C6= 0D 0A                    473                  DC.B    $0D,$0A
-000035C8= 54 61 6B 65 20 64 ...    474                  DC.B    'Take down as many of them as you can before they take you down.'
-00003607= 0D 0A                    475                  DC.B    $0D,$0A
-00003609= 56 69 76 61 20 6C ...    476                  DC.B    'Viva la revolution'
-0000361B= 0D 0A                    477                  DC.B    $0D,$0A
-0000361D= 2A 2A 2A 2A 2A 2A ...    478                  DC.B    '************************************************************'
-00003659= 0D 0A                    479                  DC.B    $0D,$0A
-0000365B= 0D 0A 00                 480                  DC.B    $0D,$0A,0
-0000365E= 0D 0A                    481  PRESS_ENTER:    DC.B    $0D,$0A
-00003660= 50 72 65 73 73 20 ...    482                  DC.B    'Press enter to continue'
-00003677= 0D 0A 00                 483                  DC.B    $0D,$0A,0
-0000367A= 43 75 72 72 65 6E ...    484  WEAPONS_MSG:    DC.B    'Current Weapon Level:',0
-00003690= 4D 6F 6E 65 79 3A 00     485  MONEY_MSG:      DC.B    'Money:',0
-00003697= 41 44 44 20 47 41 ...    486  GAMEPLAY_MSG:   DC.B    'ADD GAMEPLAY !',0
-000036A6= 41 20 6E 65 77 20 ...    487  MISSION_MSG:    DC.B    'A new challenger has appeared...oh Gods no...'
-000036D3= 0D 0A                    488                  DC.B    $0D,$0A
-000036D5= 45 6C 69 6D 69 6E ...    489                  DC.B    'Eliminate the rabbit!',0
-000036EB= 57 68 61 74 20 64 ...    490  PLAYERTURN_MSG: DC.B    'What do you want to do?'
-00003702= 0D 0A                    491                  DC.B    $0D,$0A
-00003704= 31 20 2D 20 41 74 ...    492                  DC.B    '1 - Attack!  2 - Heal thyself!'
-00003722= 0D 0A 00                 493                  DC.B    $0D,$0A,0
-00003725= 53 54 52 49 4B 45 ...    494  HIT_MSG:        DC.B    'STRIKE!',0
-0000372D= 4D 49 53 53 21 00        495  MISS_MSG:       DC.B    'MISS!',0
-00003733= 2E 00                    496  LOOP_MSG:       DC.B    '.',0
-00003735= 45 4E 54 45 52 20 ...    497  REPLAY_MSG:     DC.B    'ENTER 0 TO QUIT ANY OTHER NUMBER TO REPLAY : ',0
-00003763= 53 43 4F 52 45 20 ...    498  HUD_MSG:        DC.B    'SCORE : ',0
-0000376C= 2A 2A 2A 2A 2A 2A ...    499  SHOP_MSG:       DC.B    '************************************************************'
-000037A8= 0D 0A                    500                  DC.B    $0D,$0A
-000037AA= 2A 41 20 76 65 72 ...    501                  DC.B    '*A very obviously dressed up Rabbid shows up*'
-000037D7= 0D 0A                    502                  DC.B    $0D,$0A
-000037D9= 47 72 65 65 74 69 ...    503                  DC.B    'Greetings, traveller!'
-000037EE= 0D 0A                    504                  DC.B    $0D,$0A
-000037F0= 49 6D 20 73 75 72 ...    505                  DC.B    'Im sure I have something up to your liking.'
-0000381B= 0D 0A                    506                  DC.B    $0D,$0A
-0000381D= 2A 2A 2A 2A 2A 2A ...    507                  DC.B    '************************************************************'
-00003859= 0D 0A 00                 508                  DC.B    $0D,$0A,0
-0000385C= 57 6F 75 6C 64 20 ...    509  SHOP_PROMPT:    DC.B    'Would you like to visit the shop?'
-0000387D= 0D 0A                    510                  DC.B    $0D,$0A
-0000387F= 31 20 2D 20 45 6E ...    511                  DC.B    '1 - Enter Shop, Enter- Proceed'
-0000389D= 0D 0A 00                 512                  DC.B    $0D,$0A,0
-000038A0= 48 65 61 6C 74 68 ...    513  PRICE_MSG:      DC.B    'Health Potion- 10'
-000038B1= 0D 0A                    514                  DC.B    $0D,$0A
-000038B3= 53 77 6F 72 64 20 ...    515                  DC.B    'Sword Upgrade- 50'
-000038C4= 0D 0A                    516                  DC.B    $0D,$0A
-000038C6= 2A 2A 2A 2A 2A 2A ...    517                  DC.B    '************************************************************'
-00003902= 0D 0A                    518                  DC.B    $0D,$0A
-00003904= 31 20 2D 20 42 75 ...    519                  DC.B    '1 - Buy a Health Potion, 2 - Buy a weapon upgrade, Enter - Proceed'
-00003946= 0D 0A 00                 520                  DC.B    $0D,$0A,0
-00003949= 0D 0A                    521  NO_MONEY:       DC.B    $0D,$0A
-0000394B= 4E 6F 74 20 65 6E ...    522                  DC.B    'Not enough money to purchase item'
-0000396C= 0D 0A 00                 523                  DC.B    $0D,$0A,0
-0000396F= 0D 0A                    524  NOT_CORRECT:    DC.B    $0D,$0A
-00003971= 4F 70 74 69 6F 6E ...    525                  DC.B    'Option Unavailable'
-00003983= 0D 0A 00                 526                  DC.B    $0D,$0A,0
-00003986                           527                  
-00003986= 0D 0A                    528  FULL_HEALTH:    DC.B    $0D,$0A
-00003988= 48 45 41 4C 54 48 ...    529                  DC.B    'HEALTH IS FULL - Unable to heal'
-000039A7= 0D 0A 00                 530                  DC.B    $0D,$0A,0
-000039AA                           531  
-000039AA= 0D 0A                    532  USE_POTION:     DC.B    $0D,$0A
-000039AC= 59 6F 75 20 68 61 ...    533                  DC.B    'You have gained 50 health'
-000039C5= 0D 0A 00                 534                  DC.B    $0D,$0A,0
-000039C8= 48 65 61 6C 74 68 ...    535  HEALTH_MSG:     DC.B    'Health:',0
-000039D0= 4E 6F 20 70 6F 74 ...    536  ZEROPOTION_MSG: DC.B    'No potions available',0
-000039E5                           537                  
-000039E6                           538  SCORE:      DS.W    1   RESERVE SPACE FOR SCORE
-000039E8                           539  
-000039E8                           540      END START
+00001000                            19  
+00001000                            20  *-------------------------------------------------------
+00001000                            21  *VALIDATION VALUES TO BE USED, MODIFY AS NEEDED
+00001000                            22  *ADD ADDITIONAL VALIDATION VALUES AS REQUIRED
+00001000                            23  *-------------------------------------------------------
+00001000  =00000000                 24  EXIT        EQU 0      USED TO EXIT ASSEMBLY PROGRAM
+00001000  =00000002                 25  OWNED_POTIONS EQU 2      MIN NUMBER OF POTIONS
+00001000  =00000001                 26  OWNED_WEAPONS EQU 1      MIN WEAPON LEVEL
+00001000  =00000003                 27  MAX_WEAPON    EQU 3      MAX WEAPON LEVEL
+00001000  =00000000                 28  MONEY_AMOUNT  EQU 0     AMOUNT OF MONEY IN PLAYER'S POSSESSION
+00001000  =0000000A                 29  POTION_PRICE EQU 10     PRICE OF POTION IN SHOP
+00001000  =00000064                 30  WEAPON_PRICE EQU 100     PRICE OF WEAPON UPGRADE IN SHOP
+00001000  =00000050                 31  ENEMY_HEALTH EQU 80
+00001000  =00000064                 32  HEALTH       EQU 100
+00001000  =00000064                 33  MINE_LOC    EQU 100    USED BELOW FOR SOME SIMPLE COLLISION DETECTION USING CMP
+00001000  =0000001E                 34  DAMAGE      EQU 30
+00001000                            35  
+00001000                            36  
+00001000                            37  *START OF GAME
+00001000                            38  START:
+00001000  11FC 0050 4036            39      MOVE.B  #ENEMY_HEALTH,$4036
+00001006  45F8 4036                 40      LEA     $4036,A2
+0000100A  11FC 0002 4000            41      MOVE.B  #OWNED_POTIONS,$4000 PUT POTION AMOUNT IN MEMORY LOCATION $4000
+00001010  47F8 4000                 42      LEA     $4000,A3   ASSIGN ADDRESS A3 TO THAT MEMORY LOCATION
+00001014  11FC 0064 4008            43      MOVE.B  #HEALTH,$4008
+0000101A  49F8 4008                 44      LEA     $4008,A4
+0000101E  11FC 0001 4016            45      MOVE.B  #OWNED_WEAPONS,$4016 PUT WEAPON LEVEL IN MEMORY LOCATION $4008
+00001024  4BF8 4016                 46      LEA     $4016,A5   ASSIGN ADDRESS A4 TO THAT MEMORY LOCATION
+00001028  11FC 0000 4024            47      MOVE.B  #MONEY_AMOUNT,$4024
+0000102E  4DF8 4024                 48      LEA     $4024,A6
+00001032                            49  
+00001032                            50      
+00001032  11FC 000A 4032            51      MOVE.B  #POTION_PRICE,$4032
+00001038                            52  
+00001038                            53  
+00001038                            54  
+00001038                            55  
+00001038  6100 1FD0                 56      BSR     WELCOME    BRANCH TO THE WELCOME SUBROUTINE
+0000103C  6100 1FEA                 57      BSR     INPUT      BRANCH TO THE INPUT SUBROUTINE
+00001040  6100 1FBE                 58      BSR     GAME       BRANCH TO THE GAME SUBROUTINE
+00001044                            59  *GAME LOOP
+00003000                            60      ORG     $3000      THE REST OF THE PROGRAM IS TO BE LOCATED FROM 3000 ONWARDS
+00003000                            61  
+00003000                            62  *-------------------------------------------------------
+00003000                            63  *-------------------GAME SUBROUTINE---------------------
+00003000                            64  *-------------------------------------------------------
+00003000                            65  GAME:
+00003000  6100 0038                 66      BSR     GAMELOOP   BRANCH TO GAMELOOP SUBROUTINE
+00003004  4E75                      67      RTS                RETURN FROM GAME: SUBROUTINE
+00003006                            68            
+00003006                            69  END:
+00003006  FFFF FFFF                 70      SIMHALT
+0000300A                            71  
+0000300A                            72  *-------------------------------------------------------
+0000300A                            73  *-------------------WELCOME SUBROUTINE------------------
+0000300A                            74  *-------------------------------------------------------
+0000300A                            75  WELCOME:
+0000300A  6100 02E2                 76      BSR     ENDL            BRANCH TO ENDL SUBROUTINE
+0000300E  43F9 00003425             77      LEA     WELCOME_MSG,A1  ASSIGN MESSAGE TO ADDRESS REGISTER A1
+00003014  103C 000E                 78      MOVE.B  #14,D0          MOVE LITERAL 14 TO DO
+00003018  4E4F                      79      TRAP    #15             TRAP AND INTERPRET VALUE IN D0
+0000301A  43F9 000035E0             80      LEA     INSTRUCT_MSG,A1
+00003020  103C 000E                 81      MOVE.B  #14,D0
+00003024  4E4F                      82      TRAP    #15
+00003026                            83  
+00003026  4E75                      84      RTS                     RETURN FROM WELCOME: SUBROUTINE
+00003028                            85  
+00003028                            86  *-------------------------------------------------------
+00003028                            87  *---------GAMEPLAY INPUT VALUES SUBROUTINE--------------
+00003028                            88  *-------------------------------------------------------    
+00003028                            89  INPUT:
+00003028  6100 0156                 90      BSR     MONEY
+0000302C  6100 018E                 91      BSR     SHOW_HEALTH
+00003030  6100 016C                 92      BSR     POTIONS
+00003034  6100 0114                 93      BSR     PROMPT         BRANCH TO WEAPONSS INPUT SUBROUTINE
+00003038  4E75                      94      RTS
+0000303A                            95  
+0000303A                            96  *-------------------------------------------------------
+0000303A                            97  *----------------GAMELOOP (MAIN LOOP)-------------------
+0000303A                            98  *------------------------------------------------------- 
+0000303A                            99  GAMELOOP:
+0000303A  6100 0018                100      BSR     MISSION_INFO    BRANCH TO UPDATE GAME SUBROUTINE        
+0000303E  6100 002E                101      BSR     PLAYER_TURN     BRANCH TO PLAYER TURN SUBROUTINE
+00003042  6100 0196                102      BSR     ENEMY_TURN        BRANCH TO ENEMY_TURN SUBROUTINE
+00003046  6100 0026                103      BSR     PLAYER_TURN     BRANCH TO PLAYER TURN SUBROUTINE
+0000304A  6100 018E                104      BSR     ENEMY_TURN        BRANCH TO ENEMY_TURN SUBROUTINE
+0000304E  6100 027C                105      BSR     REPLAY          BRANCH TO REPLAY GAME SUBROUTINE
+00003052  4E75                     106      RTS                     RETURN FROM GAMELOOP: SUBROUTINE
+00003054                           107  
+00003054                           108  *-------------------------------------------------------
+00003054                           109  *----------------MISSION_INFO------------------
+00003054                           110  *  COMPLETE QUEST
+00003054                           111  *------------------------------------------------------- 
+00003054                           112  MISSION_INFO
+00003054  6100 0298                113      BSR     ENDL            PRINT A CR AND LF
+00003058  6100 0254                114      BSR     DECORATE        DECORATE WITH DOTS USING A LOOP
+0000305C  43F9 00003713            115      LEA     MISSION_MSG,A1   
+00003062  103C 000E                116      MOVE.B  #14,D0
+00003066  4E4F                     117      TRAP    #15
+00003068  6100 0244                118      BSR     DECORATE
+0000306C  4E75                     119      RTS
+0000306E                           120  *-------------------------------------------------------
+0000306E                           121  *-----------------PLAYER TURN UPDATES--------------------
+0000306E                           122  * LETS PLAYER CHOOSE IF THEY WANT TO ATTACK OR USE POTION
+0000306E                           123  *------------------------------------------------------- 
+0000306E                           124  PLAYER_TURN:
+0000306E  6100 027E                125      BSR     ENDL
+00003072  6100 0148                126      BSR     SHOW_HEALTH
+00003076  6100 0126                127      BSR     POTIONS
+0000307A  6100 0232                128      BSR     DECORATE
+0000307E  0C52 0001                129      CMP     #1,(A2)
+00003082  6D00 01EA                130      BLT     WIN_FIGHT
+00003086  0C54 0001                131      CMP     #1,(A4)
+0000308A  6D00 020C                132      BLT     LOSE_FIGHT
+0000308E  43F9 00003758            133      LEA     PLAYERTURN_MSG,A1
+00003094  103C 000E                134      MOVE.B  #14,D0
+00003098  4E4F                     135      TRAP    #15
+0000309A  103C 0004                136      MOVE.B  #4,D0   
+0000309E  4E4F                     137      TRAP    #15
+000030A0                           138      
+000030A0  3001                     139      MOVE    D1,D0   GETS INPUT FROM PLAYER AND LETA CHOOSE OPTION
+000030A2  B27C 0001                140      CMP     #1,D1
+000030A6  6600 000C                141      BNE     NEXT_CHOICE   IF OPTION 1 NOT CHOSEN, MOVES TO OPTION 2
+000030AA  6100 0202                142      BSR     DECORATE  
+000030AE  6100 0162                143      BSR     COLLISION   
+000030B2  4E75                     144      RTS
+000030B4                           145  
+000030B4                           146  NEXT_CHOICE:
+000030B4  B27C 0002                147      CMP     #2,D1
+000030B8  6600 005C                148      BNE     WRONG_CHOICE
+000030BC  1C13                     149      MOVE.B  (A3),D6
+000030BE  BC7C 0001                150      CMP     #1,D6
+000030C2  6C00 0012                151      BGE     MINUS_POTION
+000030C6  43F9 00003A4A            152      LEA     ZEROPOTION_MSG,A1
+000030CC  103C 000E                153      MOVE.B  #14,D0
+000030D0  4E4F                     154      TRAP    #15
+000030D2  619A                     155      BSR     PLAYER_TURN
+000030D4  4E75                     156      RTS
+000030D6                           157      
+000030D6                           158  MINUS_POTION:
+000030D6  1E14                     159      MOVE.B  (A4),D7
+000030D8  BE7C 0064                160      CMP     #100,D7
+000030DC  6C00 0022                161      BGE     CANT_USE_POTION
+000030E0  43F9 00003A24            162      LEA     USE_POTION,A1
+000030E6  103C 000E                163      MOVE.B  #14,D0
+000030EA  4E4F                     164      TRAP    #15
+000030EC  6100 01C0                165      BSR     DECORATE
+000030F0  5313                     166      SUB.B   #1,(A3)
+000030F2  0614 003C                167      ADD.B   #60,(A4)
+000030F6  6100 00C4                168      BSR SHOW_HEALTH
+000030FA  6100 00A2                169      BSR POTIONS
+000030FE  4E75                     170      RTS
+00003100                           171     
+00003100                           172  CANT_USE_POTION:
+00003100  43F9 00003A00            173      LEA     FULL_HEALTH,A1
+00003106  103C 000E                174      MOVE.B  #14,D0
+0000310A  4E4F                     175      TRAP    #15
+0000310C  6100 01A0                176      BSR     DECORATE 
+00003110  6100 FF5C                177      BSR     PLAYER_TURN
+00003114  4E75                     178      RTS 
+00003116                           179  WRONG_CHOICE:
+00003116  43F9 000039E9            180      LEA     NOT_CORRECT,A1
+0000311C  103C 000E                181      MOVE.B  #14,D0
+00003120  4E4F                     182      TRAP    #15
+00003122  6600 FF4A                183      BNE PLAYER_TURN
+00003126  4E75                     184      RTS
+00003128                           185  *-------------------------------------------------------
+00003128                           186  *-------------------------WEAPONS-----------------------
+00003128                           187  * NUMBER OF WEAPONS
+00003128                           188  *-------------------------------------------------------   
+00003128                           189  WEAPONS:
+00003128  6100 01C4                190      BSR     ENDL
+0000312C  43F9 000036E3            191      LEA     WEAPONS_MSG,A1
+00003132  103C 000E                192      MOVE.B  #14,D0
+00003136  4E4F                     193      TRAP    #15
+00003138  1215                     194      MOVE.B  (A5),D1
+0000313A  103C 0003                195      MOVE.B  #3,D0
+0000313E  4E4F                     196      TRAP    #15
+00003140  6100 01AC                197      BSR     ENDL
+00003144  6100 0168                198      BSR     DECORATE
+00003148  4E75                     199      RTS
+0000314A                           200      
+0000314A                           201  PROMPT:
+0000314A  61DC                     202      BSR     WEAPONS
+0000314C  43F9 000036C7            203      LEA     PRESS_ENTER,A1
+00003152  103C 000E                204      MOVE.B  #14,D0
+00003156  4E4F                     205      TRAP    #15
+00003158  103C 0004                206      MOVE.B  #4,D0   
+0000315C  4E4F                     207      TRAP    #15
+0000315E  43F9 000038D5            208      LEA     SHOP_PROMPT,A1
+00003164  103C 000E                209      MOVE.B  #14,D0
+00003168  4E4F                     210      TRAP    #15
+0000316A  103C 0004                211      MOVE.B  #4,D0   
+0000316E  4E4F                     212      TRAP    #15
+00003170  3001                     213      MOVE    D1,D0
+00003172  B27C 0001                214      CMP #1,D1
+00003176  6600 FE88                215      BNE GAME
+0000317A  6100 0188                216      BSR SHOP
+0000317E  4E75                     217      RTS
+00003180                           218  
+00003180                           219  *-------------------------------------------------------
+00003180                           220  *--------------------Money display---------------------
+00003180                           221  *-------------------------------------------------------
+00003180                           222  MONEY:
+00003180  6100 012C                223      BSR     DECORATE
+00003184  43F9 000036F9            224      LEA     MONEY_MSG,A1
+0000318A  103C 000E                225      MOVE.B  #14,D0
+0000318E  4E4F                     226      TRAP    #15
+00003190  1216                     227      MOVE.B  (A6),D1
+00003192  103C 0003                228      MOVE.B  #3,D0
+00003196  4E4F                     229      TRAP    #15
+00003198  6100 0154                230      BSR     ENDL
+0000319C  4E75                     231      RTS
+0000319E                           232  
+0000319E                           233  
+0000319E                           234  
+0000319E                           235  *-------------------------------------------------------
+0000319E                           236  *--------------------POTIONS INVENTORY---------------------
+0000319E                           237  * NUMBER OF POTIONS TO BE USED IN A QUEST 
+0000319E                           238  *-------------------------------------------------------
+0000319E                           239  POTIONS:
+0000319E  6100 014E                240      BSR     ENDL
+000031A2  43F9 000035D1            241      LEA     POTIONS_MSG,A1
+000031A8  103C 000E                242      MOVE.B  #14,D0
+000031AC  4E4F                     243      TRAP    #15
+000031AE  1213                     244      MOVE.B  (A3),D1
+000031B0  103C 0003                245      MOVE.B  #3,D0
+000031B4  4E4F                     246      TRAP    #15
+000031B6  6100 0136                247      BSR     ENDL            BRANCH TO ENDL SUBROUTINE
+000031BA  4E75                     248      RTS
+000031BC                           249      
+000031BC                           250      
+000031BC                           251  *-------------------------------------------------------
+000031BC                           252  *--------------------SHOW HEALTH---------------------
+000031BC                           253  * SHOWS AMOUNT OF HEALTH 
+000031BC                           254  *-------------------------------------------------------
+000031BC                           255  SHOW_HEALTH:
+000031BC  6100 0130                256      BSR     ENDL
+000031C0  43F9 00003A42            257      LEA     HEALTH_MSG,A1
+000031C6  103C 000E                258      MOVE.B  #14,D0
+000031CA  4E4F                     259      TRAP    #15
+000031CC  1214                     260      MOVE.B  (A4),D1
+000031CE  103C 0003                261      MOVE.B  #3,D0
+000031D2  4E4F                     262      TRAP    #15
+000031D4  6100 0118                263      BSR     ENDL            BRANCH TO ENDL SUBROUTINE
+000031D8  4E75                     264      RTS
+000031DA                           265  *-------------------------------------------------------
+000031DA                           266  *---ENEMY TURN (QUEST PROGRESS)--------------------------
+000031DA                           267  *------------------------------------------------------- 
+000031DA                           268  ENEMY_TURN:
+000031DA  6100 0112                269      BSR     ENDL
+000031DE  6100 00CE                270      BSR     DECORATE
+000031E2  43F9 00003700            271      LEA     GAMEPLAY_MSG,A1
+000031E8  103C 000E                272      MOVE.B  #14,D0
+000031EC  4E4F                     273      TRAP    #15
+000031EE  103C 0004                274      MOVE.B  #4,D0
+000031F2  4E4F                     275      TRAP    #15
+000031F4  0414 0031                276      SUB.B   #49,(A4)
+000031F8  0C52 0001                277      CMP     #1,(A2)            IF ENEMY HEALTH IS BELOW 1, PLAYER WINS
+000031FC  6D00 0070                278      BLT WIN_FIGHT
+00003200  0C54 0001                279      CMP     #1,(A4)             IF PLAYER HEALTH IS BELOW 1, PLAYER LOSES
+00003204  6D00 0092                280      BLT     LOSE_FIGHT
+00003208  6100 00A4                281      BSR     DECORATE
+0000320C  6100 FE60                282      BSR     PLAYER_TURN
+00003210  4E75                     283      RTS
+00003212                           284  
+00003212                           285  *-------------------------------------------------------
+00003212                           286  *-----------------------ATTACKING THE RABBIT------------------
+00003212                           287  * DEALS DAMAGE AND CHECKS IF PLAYER OR RABBIT ARE LOW
+00003212                           288  *-------------------------------------------------------
+00003212                           289  COLLISION:
+00003212                           290      *HIT
+00003212  43F9 00003792            291      LEA     HIT_MSG,A1
+00003218  303C 000E                292      MOVE    #14,D0
+0000321C  4E4F                     293      TRAP    #15
+0000321E  6100 008E                294      BSR     DECORATE
+00003222  6100 00CA                295      BSR     ENDL
+00003226  1A3C 001E                296      MOVE.B  #DAMAGE,D5
+0000322A  CAFC 0001                297      MULU    #OWNED_WEAPONS,D5           MULTIPLIES DAMAGE BY LEVEL OF WEAPON
+0000322E  9B12                     298      SUB.B   D5,(A2)
+00003230  0C52 0001                299      CMP     #1,(A2)
+00003234  6D00 0038                300      BLT WIN_FIGHT
+00003238  0C54 0001                301      CMP     #1,(A4)
+0000323C  6D00 005A                302      BLT     LOSE_FIGHT
+00003240  43F9 00003A5F            303      LEA     SHOW_ENEMY_HEALTH,A1
+00003246  303C 000E                304      MOVE    #14,D0
+0000324A  4E4F                     305      TRAP    #15
+0000324C  1212                     306      MOVE.B  (A2),D1
+0000324E  103C 0003                307      MOVE.B  #3,D0
+00003252  4E4F                     308      TRAP    #15
+00003254  6100 0098                309      BSR     ENDL
+00003258  0C52 0001                310      CMP     #1,(A2)
+0000325C  6D00 0010                311      BLT WIN_FIGHT
+00003260  0C54 0001                312      CMP     #1,(A4)
+00003264  6D00 0032                313      BLT     LOSE_FIGHT
+00003268                           314      
+00003268  6100 FF70                315      BSR ENEMY_TURN
+0000326C  4E75                     316      RTS
+0000326E                           317  *The Win Screen
+0000326E                           318  WIN_FIGHT:
+0000326E  6100 FF4C                319      BSR     SHOW_HEALTH     Displays health on screen
+00003272  0616 0019                320      ADD.B   #25,(A6)        Gives the player money for defeating rabbit
+00003276  6100 FF08                321      BSR     MONEY           Displays money on screen
+0000327A  6100 0072                322      BSR     ENDL
+0000327E  43F9 00003A77            323      LEA     WIN_MSG,A1      Shows win message
+00003284  103C 000E                324      MOVE.B  #14,D0
+00003288  4E4F                     325      TRAP    #15
+0000328A  18BC 0064                326      MOVE.B  #100,(A4)       Replenishes player health
+0000328E  14BC 0050                327      MOVE.B  #80,(A2)        Replenishes rabbit health
+00003292  6100 0038                328      BSR REPLAY
+00003296  4E75                     329      RTS
+00003298                           330  *The Lose screen  
+00003298                           331  LOSE_FIGHT:
+00003298  43F9 00003A6D            332      LEA     LOSE_MSG,A1
+0000329E  103C 000E                333      MOVE.B  #14,D0
+000032A2  4E4F                     334      TRAP    #15
+000032A4  18BC 0064                335      MOVE.B  #100,(A4)
+000032A8  6100 0022                336      BSR REPLAY
+000032AC  4E75                     337      RTS
+000032AE                           338  
+000032AE                           339  *-------------------------------------------------------
+000032AE                           340  *------------------SCREEN DECORATION--------------------
+000032AE                           341  *-------------------------------------------------------
+000032AE                           342  DECORATE:
+000032AE  163C 003C                343      MOVE.B  #60, D3
+000032B2  6100 003A                344      BSR     ENDL
+000032B6                           345  OUT:
+000032B6  43F9 000037AC            346      LEA     LOOP_MSG,A1
+000032BC  103C 000E                347      MOVE.B  #14,D0
+000032C0  4E4F                     348      TRAP    #15
+000032C2  5343                     349      SUB     #1,D3   DECREMENT LOOP COUNTER
+000032C4  66F0                     350      BNE     OUT     REPEAT UNTIL D0=0
+000032C6  6100 0026                351      BSR     ENDL
+000032CA  4E75                     352      RTS
+000032CC                           353      
+000032CC                           354  *-------------------------------------------------------
+000032CC                           355  *------------------------REPLAY-------------------------
+000032CC                           356  *-------------------------------------------------------
+000032CC                           357  REPLAY:
+000032CC  6100 0020                358      BSR     ENDL
+000032D0  43F9 000037AE            359      LEA     REPLAY_MSG,A1
+000032D6  103C 000E                360      MOVE.B  #14,D0
+000032DA  4E4F                     361      TRAP    #15
+000032DC                           362      
+000032DC  103C 0004                363      MOVE.B  #4,D0
+000032E0  4E4F                     364      TRAP    #15
+000032E2                           365  
+000032E2  B27C 0000                366      CMP     #EXIT,D1
+000032E6  6700 FD1E                367      BEQ     END         IF SR Z REGISTER CONTAINS 1 BEQ => BRANCH EQUALS
+000032EA  6100 FD3C                368      BSR     INPUT
+000032EE                           369  
+000032EE                           370  ENDL:
+000032EE  48E7 8040                371      MOVEM.L D0/A1,-(A7)
+000032F2  303C 000E                372      MOVE    #14,D0
+000032F6  43F9 00003422            373      LEA     CRLF,A1
+000032FC  4E4F                     374      TRAP    #15
+000032FE  4CDF 0201                375      MOVEM.L (A7)+,D0/A1
+00003302  4E75                     376      RTS
+00003304                           377  
+00003304                           378  *-------------------------------------------------------
+00003304                           379  *-------------------SHOP--------------------
+00003304                           380  *-------------------------------------------------------
+00003304                           381  SHOP:
+00003304  61E8                     382      BSR     ENDL
+00003306  61A6                     383      BSR     DECORATE
+00003308  43F9 000037E5            384      LEA     SHOP_MSG,A1
+0000330E  103C 000E                385      MOVE.B  #14,D0
+00003312  4E4F                     386      TRAP    #15
+00003314  43F9 000036C7            387      LEA     PRESS_ENTER,A1 
+0000331A  103C 000E                388      MOVE.B  #14,D0
+0000331E  4E4F                     389      TRAP    #15
+00003320  103C 0004                390      MOVE.B  #4,D0   
+00003324  4E4F                     391      TRAP    #15
+00003326  6186                     392      BSR     DECORATE
+00003328  6100 0004                393      BSR     SHOP_ASK
+0000332C  4E75                     394      RTS
+0000332E                           395  SHOP_ASK:
+0000332E  43F9 00003919            396      LEA     PRICE_MSG,A1
+00003334  103C 000E                397      MOVE.B  #14,D0
+00003338  4E4F                     398      TRAP    #15
+0000333A  103C 0004                399      MOVE.B  #4,D0   
+0000333E  4E4F                     400      TRAP    #15
+00003340                           401      
+00003340  3001                     402      MOVE    D1,D0   GETS INPUT FROM PLAYER AND LETS BUY STUFF
+00003342  B27C 0001                403      CMP     #1,D1
+00003346  6600 005A                404      BNE     NEXT_ITEM   IF OPTION 1 NOT CHOSEN, MOVES TO OPTION 2
+0000334A                           405      
+0000334A  183C 000A                406      MOVE.B  #POTION_PRICE,D4
+0000334E  1C16                     407      MOVE.B  (A6),D6
+00003350  BC44                     408      CMP     D4,D6
+00003352  6C00 0030                409      BGE     ADD_POTION  IF MONEY IS GREATER OR EQUAL TO PRICE OF POTION,CAN BUY
+00003356  43F9 000039C3            410      LEA     NO_MONEY,A1
+0000335C  103C 000E                411      MOVE.B  #14,D0
+00003360  4E4F                     412      TRAP    #15
+00003362  43F9 000036C7            413      LEA     PRESS_ENTER,A1
+00003368  103C 000E                414      MOVE.B  #14,D0 
+0000336C  4E4F                     415      TRAP    #15
+0000336E  103C 0004                416      MOVE.B  #4,D0
+00003372  4E4F                     417      TRAP    #15
+00003374  6100 FE0A                418      BSR     MONEY   
+00003378  6100 FE24                419      BSR     POTIONS
+0000337C  6100 FDAA                420      BSR     WEAPONS
+00003380  61AC                     421      BSR     SHOP_ASK
+00003382  4E75                     422      RTS
+00003384                           423  ADD_POTION:
+00003384  5213                     424      ADD.B   #1,(A3)
+00003386  0416 000A                425      SUB.B   #POTION_PRICE,(A6)
+0000338A  6100 FF62                426      BSR     ENDL
+0000338E  6100 FDF0                427      BSR     MONEY
+00003392  6100 FE0A                428      BSR     POTIONS
+00003396  6100 FD90                429      BSR     WEAPONS
+0000339A  6100 FF52                430      BSR     ENDL
+0000339E  618E                     431      BSR     SHOP_ASK
+000033A0  4E75                     432      RTS
+000033A2                           433   NEXT_ITEM:
+000033A2  B27C 0002                434      CMP     #2,D1
+000033A6  6600 FC58                435      BNE     GAME
+000033AA                           436      
+000033AA  1A3C 0064                437      MOVE.B  #WEAPON_PRICE,D5
+000033AE  1C16                     438      MOVE.B  (A6),D6
+000033B0  1815                     439      MOVE.B  (A5),D4
+000033B2  B87C 0003                440      CMP     #MAX_WEAPON,D4
+000033B6  6700 0058                441      BEQ    CANT_ADD  IF MONEY IS EQUAL TO MAX NUMBER OF UPGRADES, CAN'T BUY
+000033BA  BC45                     442      CMP     D5,D6
+000033BC  6C00 0032                443      BGE     ADD_WEAPON  IF MONEY IS GREATER OR EQUAL TO PRICE OF WEAPON,CAN BUY
+000033C0  43F9 000039C3            444      LEA     NO_MONEY,A1
+000033C6  103C 000E                445      MOVE.B  #14,D0
+000033CA  4E4F                     446      TRAP    #15
+000033CC  43F9 000036C7            447      LEA     PRESS_ENTER,A1
+000033D2  103C 000E                448      MOVE.B  #14,D0 
+000033D6  4E4F                     449      TRAP    #15
+000033D8  103C 0004                450      MOVE.B  #4,D0
+000033DC  4E4F                     451      TRAP    #15
+000033DE  6100 FDA0                452      BSR     MONEY
+000033E2  6100 FDBA                453      BSR     POTIONS
+000033E6  6100 FD40                454      BSR     WEAPONS
+000033EA  6100 FF42                455      BSR     SHOP_ASK
+000033EE  4E75                     456      RTS
+000033F0                           457      
+000033F0                           458  ADD_WEAPON:
+000033F0  5215                     459      ADD.B   #1,(A5)
+000033F2  0416 0064                460      SUB.B   #WEAPON_PRICE,(A6)
+000033F6  6100 FEF6                461      BSR     ENDL
+000033FA  6100 FD84                462      BSR     MONEY
+000033FE  6100 FD9E                463      BSR     POTIONS
+00003402  6100 FD24                464      BSR     WEAPONS
+00003406  6100 FEE6                465      BSR     ENDL
+0000340A  6100 FF22                466      BSR     SHOP_ASK
+0000340E                           467  
+0000340E  4E75                     468      RTS
+00003410                           469  
+00003410                           470  CANT_ADD:
+00003410  43F9 00003A80            471      LEA MAX_UPGRADE,A1
+00003416  103C 000E                472      MOVE.B  #14,D0 
+0000341A  4E4F                     473      TRAP    #15
+0000341C  6100 FF10                474      BSR SHOP_ASK
+00003420  4E75                     475      RTS
+00003422                           476  
+00003422                           477     
+00003422                           478  *-------------------------------------------------------
+00003422                           479  *-------------------DATA DELARATIONS--------------------
+00003422                           480  *-------------------------------------------------------
+00003422                           481  
+00003422= 0D 0A 00                 482  CRLF:           DC.B    $0D,$0A,0
+00003425= 2A 2A 2A 2A 2A 2A ...    483  WELCOME_MSG:    DC.B    '************************************************************'
+00003461= 0D 0A                    484                  DC.B    $0D,$0A
+00003463= 59 6F 75 76 65 20 ...    485                  DC.B    'Youve always been a very dedicated plumber. Always done on time and without' 
+000034AE= 0D 0A                    486                  DC.B    $0D,$0A
+000034B0= 6C 65 61 6B 73 2E ...    487                  DC.B    'leaks. You are simply, one of the best. Or at least you were...'
+000034EF= 0D 0A                    488                  DC.B    $0D,$0A
+000034F1= 41 6C 6C 20 6F 66 ...    489                  DC.B    'All of a sudden these... bunny-eared plumber wannabes showed up and took your'
+0000353E= 0D 0A                    490                  DC.B    $0D,$0A
+00003540= 6A 6F 62 73 2E 20 ...    491                  DC.B    'jobs. I mean seriously, what kind of self-respected plumber works for free?!?!'
+0000358E= 0D 0A                    492                  DC.B    $0D,$0A
+00003590= 49 74 73 20 74 69 ...    493                  DC.B    'Its time to show these fakers, who the real Plumber Boss is.'
+000035CC= 0D 0A                    494                  DC.B    $0D,$0A
+000035CE= 0D 0A 00                 495                  DC.B    $0D,$0A,0
+000035D1= 50 6F 74 69 6F 6E ...    496  POTIONS_MSG:    DC.B    'Potions owned:',0
+000035E0= 59 6F 75 72 20 6D ...    497  INSTRUCT_MSG:   DC.B    'Your mission is simple. Defeat the vermin and take back your well-earned title.'
+0000362F= 0D 0A                    498                  DC.B    $0D,$0A
+00003631= 54 61 6B 65 20 64 ...    499                  DC.B    'Take down as many of them as you can before they take you down.'
+00003670= 0D 0A                    500                  DC.B    $0D,$0A
+00003672= 56 69 76 61 20 6C ...    501                  DC.B    'Viva la revolution'
+00003684= 0D 0A                    502                  DC.B    $0D,$0A
+00003686= 2A 2A 2A 2A 2A 2A ...    503                  DC.B    '************************************************************'
+000036C2= 0D 0A                    504                  DC.B    $0D,$0A
+000036C4= 0D 0A 00                 505                  DC.B    $0D,$0A,0
+000036C7= 0D 0A                    506  PRESS_ENTER:    DC.B    $0D,$0A
+000036C9= 50 72 65 73 73 20 ...    507                  DC.B    'Press enter to continue'
+000036E0= 0D 0A 00                 508                  DC.B    $0D,$0A,0
+000036E3= 43 75 72 72 65 6E ...    509  WEAPONS_MSG:    DC.B    'Current Weapon Level:',0
+000036F9= 4D 6F 6E 65 79 3A 00     510  MONEY_MSG:      DC.B    'Money:',0
+00003700= 52 61 62 62 69 74 ...    511  GAMEPLAY_MSG:   DC.B    'Rabbit has struck!',0
+00003713= 41 20 6E 65 77 20 ...    512  MISSION_MSG:    DC.B    'A new challenger has appeared...oh Gods no...'
+00003740= 0D 0A                    513                  DC.B    $0D,$0A
+00003742= 45 6C 69 6D 69 6E ...    514                  DC.B    'Eliminate the rabbit!',0
+00003758= 57 68 61 74 20 64 ...    515  PLAYERTURN_MSG: DC.B    'What do you want to do?'
+0000376F= 0D 0A                    516                  DC.B    $0D,$0A
+00003771= 31 20 2D 20 41 74 ...    517                  DC.B    '1 - Attack!  2 - Heal thyself!'
+0000378F= 0D 0A 00                 518                  DC.B    $0D,$0A,0
+00003792= 59 6F 75 20 6C 75 ...    519  HIT_MSG:        DC.B    'You lunged at the Rabbit!',0
+000037AC= 2E 00                    520  LOOP_MSG:       DC.B    '.',0
+000037AE= 45 4E 54 45 52 20 ...    521  REPLAY_MSG:     DC.B    'ENTER 0 TO QUIT ANY OTHER NUMBER TO REPLAY : ',0
+000037DC= 53 43 4F 52 45 20 ...    522  HUD_MSG:        DC.B    'SCORE : ',0
+000037E5= 2A 2A 2A 2A 2A 2A ...    523  SHOP_MSG:       DC.B    '************************************************************'
+00003821= 0D 0A                    524                  DC.B    $0D,$0A
+00003823= 2A 41 20 76 65 72 ...    525                  DC.B    '*A very obviously dressed up Rabbid shows up*'
+00003850= 0D 0A                    526                  DC.B    $0D,$0A
+00003852= 47 72 65 65 74 69 ...    527                  DC.B    'Greetings, traveller!'
+00003867= 0D 0A                    528                  DC.B    $0D,$0A
+00003869= 49 6D 20 73 75 72 ...    529                  DC.B    'Im sure I have something up to your liking.'
+00003894= 0D 0A                    530                  DC.B    $0D,$0A
+00003896= 2A 2A 2A 2A 2A 2A ...    531                  DC.B    '************************************************************'
+000038D2= 0D 0A 00                 532                  DC.B    $0D,$0A,0
+000038D5= 57 6F 75 6C 64 20 ...    533  SHOP_PROMPT:    DC.B    'Would you like to visit the shop?'
+000038F6= 0D 0A                    534                  DC.B    $0D,$0A
+000038F8= 31 20 2D 20 45 6E ...    535                  DC.B    '1 - Enter Shop, Enter- Proceed'
+00003916= 0D 0A 00                 536                  DC.B    $0D,$0A,0
+00003919= 48 65 61 6C 74 68 ...    537  PRICE_MSG:      DC.B    'Health Potion- 10'
+0000392A= 0D 0A                    538                  DC.B    $0D,$0A
+0000392C= 53 77 6F 72 64 20 ...    539                  DC.B    'Sword Upgrade- 100'
+0000393E= 0D 0A                    540                  DC.B    $0D,$0A
+00003940= 2A 2A 2A 2A 2A 2A ...    541                  DC.B    '************************************************************'
+0000397C= 0D 0A                    542                  DC.B    $0D,$0A
+0000397E= 31 20 2D 20 42 75 ...    543                  DC.B    '1 - Buy a Health Potion, 2 - Buy a weapon upgrade, Enter - Proceed'
+000039C0= 0D 0A 00                 544                  DC.B    $0D,$0A,0
+000039C3= 0D 0A                    545  NO_MONEY:       DC.B    $0D,$0A
+000039C5= 4E 6F 74 20 65 6E ...    546                  DC.B    'Not enough money to purchase item'
+000039E6= 0D 0A 00                 547                  DC.B    $0D,$0A,0
+000039E9= 0D 0A                    548  NOT_CORRECT:    DC.B    $0D,$0A
+000039EB= 4F 70 74 69 6F 6E ...    549                  DC.B    'Option Unavailable'
+000039FD= 0D 0A 00                 550                  DC.B    $0D,$0A,0
+00003A00                           551                  
+00003A00= 0D 0A                    552  FULL_HEALTH:    DC.B    $0D,$0A
+00003A02= 48 45 41 4C 54 48 ...    553                  DC.B    'HEALTH IS FULL - Unable to heal'
+00003A21= 0D 0A 00                 554                  DC.B    $0D,$0A,0
+00003A24                           555  
+00003A24= 0D 0A                    556  USE_POTION:     DC.B    $0D,$0A
+00003A26= 59 6F 75 20 68 61 ...    557                  DC.B    'You have gained 60 health'
+00003A3F= 0D 0A 00                 558                  DC.B    $0D,$0A,0
+00003A42= 48 65 61 6C 74 68 ...    559  HEALTH_MSG:     DC.B    'Health:',0
+00003A4A= 4E 6F 20 70 6F 74 ...    560  ZEROPOTION_MSG: DC.B    'No potions available',0
+00003A5F= 45 6E 65 6D 79 20 ...    561  SHOW_ENEMY_HEALTH: DC.B    'Enemy Health:',0
+00003A6D= 59 6F 75 20 4C 6F ...    562  LOSE_MSG:       DC.B    'You Lose!',0
+00003A77= 59 6F 75 20 57 69 ...    563  WIN_MSG:        DC.B    'You Win!',0
+00003A80= 57 65 61 70 6F 6E ...    564  MAX_UPGRADE:    DC.B    'Weapon is at max level'
+00003A96= 0D 0A                    565                  DC.B    $0D,$0A
+00003A98= 0D 0A 00                 566                  DC.B    $0D,$0A,0
+00003A9B                           567  
+00003A9B                           568  
+00003A9B                           569                  
+00003A9B                           570  
+00003A9B                           571      END START
 
 No errors detected
 No warnings generated
@@ -550,71 +581,72 @@ No warnings generated
 SYMBOL TABLE INFORMATION
 Symbol-name         Value
 -------------------------
-ADD_POTION          331A
-ADD_WEAPON          337C
-CANT_USE_POTION     30E8
-COLLISION           3208
-COLLISION_HIT       3214
-COLLISION_MISS      3222
-CRLF                339C
-DECORATE            3244
+ADD_POTION          3384
+ADD_WEAPON          33F0
+CANT_ADD            3410
+CANT_USE_POTION     3100
+COLLISION           3212
+CRLF                3422
+DAMAGE              1E
+DECORATE            32AE
 END                 3006
-ENDL                3284
-ENEMY_HEALTH        64
-ENEMY_TURN          31C2
+ENDL                32EE
+ENEMY_HEALTH        50
+ENEMY_TURN          31DA
 EXIT                0
-FULL_HEALTH         3986
+FULL_HEALTH         3A00
 GAME                3000
 GAMELOOP            303A
-GAMEPLAY_MSG        3697
-HEALTH              A
-HEALTH_MSG          39C8
-HIT_MSG             3725
-HUD                 31E6
-HUD_MSG             3763
+GAMEPLAY_MSG        3700
+HEALTH              64
+HEALTH_MSG          3A42
+HIT_MSG             3792
+HUD_MSG             37DC
 INPUT               3028
-INSTRUCT_MSG        3577
-LOOP                3230
-LOOP_MSG            3733
+INSTRUCT_MSG        35E0
+LOOP_MSG            37AC
+LOSE_FIGHT          3298
+LOSE_MSG            3A6D
+MAX_UPGRADE         3A80
+MAX_WEAPON          3
 MINE_LOC            64
-MINUS_POTION        30BE
-MISSION_INFO        3050
-MISSION_MSG         36A6
-MISS_MSG            372D
-MONEY               3168
-MONEY_AMOUNT        3C
-MONEY_MSG           3690
-NEXT                3234
-NEXT_CHOICE         309C
-NEXT_ITEM           3338
-NOT_CORRECT         396F
-NO_MONEY            3949
-OUT                 324C
-OWNED_POTIONS       1
+MINUS_POTION        30D6
+MISSION_INFO        3054
+MISSION_MSG         3713
+MONEY               3180
+MONEY_AMOUNT        0
+MONEY_MSG           36F9
+NEXT_CHOICE         30B4
+NEXT_ITEM           33A2
+NOT_CORRECT         39E9
+NO_MONEY            39C3
+OUT                 32B6
+OWNED_POTIONS       2
 OWNED_WEAPONS       1
-PLAYERTURN_MSG      36EB
-PLAYER_TURN         306A
-POTIONS             3186
-POTIONS_MSG         3568
-POTION_MSG          354B
+PLAYERTURN_MSG      3758
+PLAYER_TURN         306E
+POTIONS             319E
+POTIONS_MSG         35D1
 POTION_PRICE        A
-PRESS_ENTER         365E
-PRICE_MSG           38A0
-PROMPT              3132
-REPLAY              3262
-REPLAY_MSG          3735
-SCORE               39E6
-SHOP                329A
-SHOP_ASK            32C4
-SHOP_MSG            376C
-SHOP_PROMPT         385C
-SHOW_HEALTH         31A4
+PRESS_ENTER         36C7
+PRICE_MSG           3919
+PROMPT              314A
+REPLAY              32CC
+REPLAY_MSG          37AE
+SHOP                3304
+SHOP_ASK            332E
+SHOP_MSG            37E5
+SHOP_PROMPT         38D5
+SHOW_ENEMY_HEALTH   3A5F
+SHOW_HEALTH         31BC
 START               1000
-USE_POTION          39AA
-WEAPONS             3110
-WEAPONS_MSG         367A
-WEAPON_PRICE        32
+USE_POTION          3A24
+WEAPONS             3128
+WEAPONS_MSG         36E3
+WEAPON_PRICE        64
 WELCOME             300A
-WELCOME_MSG         339F
-WRONG_CHOICE        30FE
-ZEROPOTION_MSG      39D0
+WELCOME_MSG         3425
+WIN_FIGHT           326E
+WIN_MSG             3A77
+WRONG_CHOICE        3116
+ZEROPOTION_MSG      3A4A

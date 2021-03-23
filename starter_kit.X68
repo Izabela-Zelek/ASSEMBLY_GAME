@@ -2,7 +2,9 @@
 * Title      :Plumber VS Rabbids
 * Written by :Izabela Zelek
 * Date       :10-03-2021
-* Description:The player has to kill rabbids to gain money and buy a better weapon and more health s.
+* Description:The player has to kill rabbids to gain money and buy a better weapon and more health potions.
+* Known Bugs: Health text gets shown twice during fight after 2 rounds of fighting.
+*             Health sometimes bugs out and shows 0 or 245
 *-----------------------------------------------------------
 
 *-------------------------------------------------------
@@ -20,19 +22,22 @@
 *ADD ADDITIONAL VALIDATION VALUES AS REQUIRED
 *-------------------------------------------------------
 EXIT        EQU 0      USED TO EXIT ASSEMBLY PROGRAM
-OWNED_POTIONS EQU 1      MIN NUMBER OF POTIONS
+OWNED_POTIONS EQU 2      MIN NUMBER OF POTIONS
 OWNED_WEAPONS EQU 1      MIN WEAPON LEVEL
-MONEY_AMOUNT       EQU 60     AMOUNT OF MONEY IN PLAYER'S POSSESSION
+MAX_WEAPON    EQU 3      MAX WEAPON LEVEL
+MONEY_AMOUNT  EQU 0     AMOUNT OF MONEY IN PLAYER'S POSSESSION
 POTION_PRICE EQU 10     PRICE OF POTION IN SHOP
-WEAPON_PRICE EQU 50     PRICE OF WEAPON UPGRADE IN SHOP
-ENEMY_HEALTH EQU 100
+WEAPON_PRICE EQU 100     PRICE OF WEAPON UPGRADE IN SHOP
+ENEMY_HEALTH EQU 80
 HEALTH       EQU 100
 MINE_LOC    EQU 100    USED BELOW FOR SOME SIMPLE COLLISION DETECTION USING CMP
-                       * EXAMPLE FOR A HIT
+DAMAGE      EQU 30
 
 
 *START OF GAME
 START:
+    MOVE.B  #ENEMY_HEALTH,$4036
+    LEA     $4036,A2
     MOVE.B  #OWNED_POTIONS,$4000 PUT POTION AMOUNT IN MEMORY LOCATION $4000
     LEA     $4000,A3   ASSIGN ADDRESS A3 TO THAT MEMORY LOCATION
     MOVE.B  #HEALTH,$4008
@@ -41,6 +46,7 @@ START:
     LEA     $4016,A5   ASSIGN ADDRESS A4 TO THAT MEMORY LOCATION
     MOVE.B  #MONEY_AMOUNT,$4024
     LEA     $4024,A6
+
     
     MOVE.B  #POTION_PRICE,$4032
 
@@ -94,7 +100,8 @@ GAMELOOP:
     BSR     MISSION_INFO    BRANCH TO UPDATE GAME SUBROUTINE        
     BSR     PLAYER_TURN     BRANCH TO PLAYER TURN SUBROUTINE
     BSR     ENEMY_TURN        BRANCH TO ENEMY_TURN SUBROUTINE
-    BSR     HUD             BRANCH TO DISPLAY HUD SUBROUTINE
+    BSR     PLAYER_TURN     BRANCH TO PLAYER TURN SUBROUTINE
+    BSR     ENEMY_TURN        BRANCH TO ENEMY_TURN SUBROUTINE
     BSR     REPLAY          BRANCH TO REPLAY GAME SUBROUTINE
     RTS                     RETURN FROM GAMELOOP: SUBROUTINE
 
@@ -112,24 +119,28 @@ MISSION_INFO
     RTS
 *-------------------------------------------------------
 *-----------------PLAYER TURN UPDATES--------------------
-* DRAW THE GAME PROGRESS INFORMATION, STATUS REGARDING
-* QUEST
+* LETS PLAYER CHOOSE IF THEY WANT TO ATTACK OR USE POTION
 *------------------------------------------------------- 
 PLAYER_TURN:
     BSR     ENDL
     BSR     SHOW_HEALTH
     BSR     POTIONS
     BSR     DECORATE
+    CMP     #1,(A2)
+    BLT     WIN_FIGHT
+    CMP     #1,(A4)
+    BLT     LOSE_FIGHT
     LEA     PLAYERTURN_MSG,A1
     MOVE.B  #14,D0
     TRAP    #15
     MOVE.B  #4,D0   
     TRAP    #15
     
-    MOVE    D1,D0   GETS INPUT FROM PLAYER AND LETS BUY STUFF
+    MOVE    D1,D0   GETS INPUT FROM PLAYER AND LETA CHOOSE OPTION
     CMP     #1,D1
     BNE     NEXT_CHOICE   IF OPTION 1 NOT CHOSEN, MOVES TO OPTION 2
-    BSR     DECORATE
+    BSR     DECORATE  
+    BSR     COLLISION   
     RTS
 
 NEXT_CHOICE:
@@ -153,7 +164,7 @@ MINUS_POTION:
     TRAP    #15
     BSR     DECORATE
     SUB.B   #1,(A3)
-    ADD.B   #50,(A4)
+    ADD.B   #60,(A4)
     BSR SHOW_HEALTH
     BSR POTIONS
     RTS
@@ -239,7 +250,7 @@ POTIONS:
     
 *-------------------------------------------------------
 *--------------------SHOW HEALTH---------------------
-* AMOUNT OF HEALTH 
+* SHOWS AMOUNT OF HEALTH 
 *-------------------------------------------------------
 SHOW_HEALTH:
     BSR     ENDL
@@ -262,60 +273,68 @@ ENEMY_TURN:
     TRAP    #15
     MOVE.B  #4,D0
     TRAP    #15
+    SUB.B   #49,(A4)
+    CMP     #1,(A2)            IF ENEMY HEALTH IS BELOW 1, PLAYER WINS
+    BLT WIN_FIGHT
+    CMP     #1,(A4)             IF PLAYER HEALTH IS BELOW 1, PLAYER LOSES
+    BLT     LOSE_FIGHT
     BSR     DECORATE
-    BSR     COLLISION
+    BSR     PLAYER_TURN
     RTS
 
 *-------------------------------------------------------
-*-----------------HEADS UP DISPLAY (SCORE)--------------
-* RETRIEVES THE SCORE FROM MEMORY LOCATION
-*-------------------------------------------------------   
-HUD:
-
-    BSR     ENDL
-    BSR     DECORATE
-    LEA     HUD_MSG,A1
-    MOVE.B  #14,D0
-    TRAP    #15
-    MOVE.B  (A3),D1     RETRIEVE THE VALUE A3 POINT TO AND MOVE TO D1
-    MOVE.B  #3,D0       MOVE LITERAL 3 TO D0
-    TRAP    #15         INTREPRET VALUE IN D0, WHICH 3 WHICH DISPLAYS D1
-    BSR     DECORATE
-    RTS
-
-*-------------------------------------------------------
-*-----------------------BEING ATTACKED------------------
-* THIS COULD BE USED FOR COLLISION DETECTION
+*-----------------------ATTACKING THE RABBIT------------------
+* DEALS DAMAGE AND CHECKS IF PLAYER OR RABBIT ARE LOW
 *-------------------------------------------------------
 COLLISION:
-    MOVE.B  #MINE_LOC,D1
-    CMP     #100,D1 IS( X == 100)?
-	BNE     COLLISION_MISS IF X IS EQUAL TO 100, THEN HIT
-COLLISION_HIT:
     *HIT
     LEA     HIT_MSG,A1
     MOVE    #14,D0
     TRAP    #15
-    RTS
-    
-COLLISION_MISS:
-    *MISS
-    LEA     MISS_MSG,A1
+    BSR     DECORATE
+    BSR     ENDL
+    MOVE.B  #DAMAGE,D5
+    MULU    #OWNED_WEAPONS,D5           MULTIPLIES DAMAGE BY LEVEL OF WEAPON
+    SUB.B   D5,(A2)
+    CMP     #1,(A2)
+    BLT WIN_FIGHT
+    CMP     #1,(A4)
+    BLT     LOSE_FIGHT
+    LEA     SHOW_ENEMY_HEALTH,A1
     MOVE    #14,D0
     TRAP    #15
+    MOVE.B  (A2),D1
+    MOVE.B  #3,D0
+    TRAP    #15
+    BSR     ENDL
+    CMP     #1,(A2)
+    BLT WIN_FIGHT
+    CMP     #1,(A4)
+    BLT     LOSE_FIGHT
+    
+    BSR ENEMY_TURN
     RTS
-
-*-------------------------------------------------------
-*--------------------------LOOP-------------------------
-*-------------------------------------------------------
-LOOP:
-    MOVE.B  #5, D3 LOOP COUNTER D3=5
-NEXT:
-    LEA     LOOP_MSG,A1
+*The Win Screen
+WIN_FIGHT:
+    BSR     SHOW_HEALTH     Displays health on screen
+    ADD.B   #25,(A6)        Gives the player money for defeating rabbit
+    BSR     MONEY           Displays money on screen
+    BSR     ENDL
+    LEA     WIN_MSG,A1      Shows win message
     MOVE.B  #14,D0
     TRAP    #15
-	SUB     #1,D3   DECREMENT LOOP COUNTER
-    BNE     NEXT    REPEAT UNTIL D0=0
+    MOVE.B  #100,(A4)       Replenishes player health
+    MOVE.B  #80,(A2)        Replenishes rabbit health
+    BSR REPLAY
+    RTS
+*The Lose screen  
+LOSE_FIGHT:
+    LEA     LOSE_MSG,A1
+    MOVE.B  #14,D0
+    TRAP    #15
+    MOVE.B  #100,(A4)
+    BSR REPLAY
+    RTS
 
 *-------------------------------------------------------
 *------------------SCREEN DECORATION--------------------
@@ -417,6 +436,9 @@ ADD_POTION:
     
     MOVE.B  #WEAPON_PRICE,D5
     MOVE.B  (A6),D6
+    MOVE.B  (A5),D4
+    CMP     #MAX_WEAPON,D4
+    BEQ    CANT_ADD  IF MONEY IS EQUAL TO MAX NUMBER OF UPGRADES, CAN'T BUY
     CMP     D5,D6
     BGE     ADD_WEAPON  IF MONEY IS GREATER OR EQUAL TO PRICE OF WEAPON,CAN BUY
     LEA     NO_MONEY,A1
@@ -445,7 +467,13 @@ ADD_WEAPON:
 
     RTS
 
-    
+CANT_ADD:
+    LEA MAX_UPGRADE,A1
+    MOVE.B  #14,D0 
+    TRAP    #15
+    BSR SHOP_ASK
+    RTS
+
    
 *-------------------------------------------------------
 *-------------------DATA DELARATIONS--------------------
@@ -465,9 +493,6 @@ WELCOME_MSG:    DC.B    '*******************************************************
                 DC.B    'Its time to show these fakers, who the real Plumber Boss is.'
                 DC.B    $0D,$0A
                 DC.B    $0D,$0A,0
-POTION_MSG:     DC.B    'POTION ....'
-                DC.B    $0D,$0A
-                DC.B    'ENTER POTION : ',0
 POTIONS_MSG:    DC.B    'Potions owned:',0
 INSTRUCT_MSG:   DC.B    'Your mission is simple. Defeat the vermin and take back your well-earned title.'
                 DC.B    $0D,$0A
@@ -483,7 +508,7 @@ PRESS_ENTER:    DC.B    $0D,$0A
                 DC.B    $0D,$0A,0
 WEAPONS_MSG:    DC.B    'Current Weapon Level:',0
 MONEY_MSG:      DC.B    'Money:',0
-GAMEPLAY_MSG:   DC.B    'ADD GAMEPLAY !',0
+GAMEPLAY_MSG:   DC.B    'Rabbit has struck!',0
 MISSION_MSG:    DC.B    'A new challenger has appeared...oh Gods no...'
                 DC.B    $0D,$0A
                 DC.B    'Eliminate the rabbit!',0
@@ -491,8 +516,7 @@ PLAYERTURN_MSG: DC.B    'What do you want to do?'
                 DC.B    $0D,$0A
                 DC.B    '1 - Attack!  2 - Heal thyself!'
                 DC.B    $0D,$0A,0
-HIT_MSG:        DC.B    'STRIKE!',0
-MISS_MSG:       DC.B    'MISS!',0
+HIT_MSG:        DC.B    'You lunged at the Rabbit!',0
 LOOP_MSG:       DC.B    '.',0
 REPLAY_MSG:     DC.B    'ENTER 0 TO QUIT ANY OTHER NUMBER TO REPLAY : ',0
 HUD_MSG:        DC.B    'SCORE : ',0
@@ -512,7 +536,7 @@ SHOP_PROMPT:    DC.B    'Would you like to visit the shop?'
                 DC.B    $0D,$0A,0
 PRICE_MSG:      DC.B    'Health Potion- 10'
                 DC.B    $0D,$0A
-                DC.B    'Sword Upgrade- 50'
+                DC.B    'Sword Upgrade- 100'
                 DC.B    $0D,$0A
                 DC.B    '************************************************************'
                 DC.B    $0D,$0A
@@ -530,14 +554,22 @@ FULL_HEALTH:    DC.B    $0D,$0A
                 DC.B    $0D,$0A,0
 
 USE_POTION:     DC.B    $0D,$0A
-                DC.B    'You have gained 50 health'
+                DC.B    'You have gained 60 health'
                 DC.B    $0D,$0A,0
 HEALTH_MSG:     DC.B    'Health:',0
 ZEROPOTION_MSG: DC.B    'No potions available',0
+SHOW_ENEMY_HEALTH: DC.B    'Enemy Health:',0
+LOSE_MSG:       DC.B    'You Lose!',0
+WIN_MSG:        DC.B    'You Win!',0
+MAX_UPGRADE:    DC.B    'Weapon is at max level'
+                DC.B    $0D,$0A
+                DC.B    $0D,$0A,0
+
+
                 
-SCORE:      DS.W    1   RESERVE SPACE FOR SCORE
 
     END START
+
 
 
 
